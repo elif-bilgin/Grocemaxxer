@@ -1,0 +1,13 @@
+*.class
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.idea/
+*.iml
+local.properties
+.DS_Store
+*.hprof
+xcuserdata/
+DerivedData/
+*.xcworkspace
