@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -76,8 +78,11 @@ import com.grocemaxxer.shared.SectionGroup
 import com.grocemaxxer.shared.Store
 import com.grocemaxxer.shared.StoreSection
 import com.grocemaxxer.shared.fullDateLabel
+import grocemaxxer.composeapp.generated.resources.Res
+import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_background
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun MainScreen(
@@ -151,18 +156,17 @@ internal fun MainScreen(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        BasketLogo(size = 36.dp)
-                        Spacer(Modifier.size(10.dp))
                         Column {
-                            Text(
-                                text = "*grocemaxxer*",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                            Image(
+                                painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
+                                contentDescription = "grocemaxxer",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(60.dp),
+                                contentScale = ContentScale.Fit,
                             )
                             Text(
                                 text = fullDateLabel(repository.todayIso),
