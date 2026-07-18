@@ -40,6 +40,14 @@ class ItemCategorizerTest {
             "cat litter" to StoreSection.PET,
             "flowers" to StoreSection.FLORAL,
             "tulips" to StoreSection.FLORAL,
+            "gouda" to StoreSection.DAIRY_EGGS,
+            "swiss cheese" to StoreSection.DAIRY_EGGS,
+            "greek yogurt" to StoreSection.DAIRY_EGGS,
+            "ciabatta" to StoreSection.BAKERY,
+            "english muffin" to StoreSection.BAKERY,
+            "dragon fruit" to StoreSection.PRODUCE,
+            "butternut squash" to StoreSection.PRODUCE,
+            "swiss chard" to StoreSection.PRODUCE,
         )
 
         for ((input, expected) in cases) {

@@ -2,10 +2,25 @@
 
 A Kotlin Multiplatform grocery checklist app. You type in what you want to
 buy; it groups the items by which part of the store they're likely to be
-colocated in, and orders those groups to match a low-backtracking walk
-through a typical supermarket (produce/bakery near the entrance, perimeter
-departments, frozen, center aisles, then health/household). Check items off
-in the order they appear and you shouldn't have to double back.
+colocated in, and orders those groups into a "speed-run" walk for your
+store. Check items off in the order they appear and you shouldn't have to
+double back.
+
+Features:
+- Store selector (Default, Safeway, Whole Foods, Target, Trader Joe's) --
+  each store has its own section ordering tuned to its real layout
+  (`shared/.../Store.kt`); the choice is persisted.
+- Checked items sink to the bottom of their section; fully-checked
+  sections collapse into an animated "Done sections" stack at the bottom
+  (tap to expand, scroll back up to re-stack). Checking off the last item
+  blurs the screen with a "You got everything!" celebration.
+- Lists are stored per calendar date; the start screen offers Use
+  Previous List / Start New List / Use List From Date (wheel picker), and
+  re-using a list with checked items asks whether to keep or clear the
+  progress.
+- Duplicate items are skipped automatically (case-insensitive), names are
+  Title Cased, and the add sheet lets you override the auto-detected
+  category.
 
 ## How the ordering works
 
