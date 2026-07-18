@@ -4,10 +4,12 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.androidLibrary)
 }
 
 kotlin {
     jvm()
+    androidTarget()
 
     listOf(
         iosX64(),
@@ -19,11 +21,6 @@ kotlin {
             isStatic = true
         }
     }
-
-    // To add Android, apply `com.android.application` above, add
-    // `androidTarget()` here, and create composeApp/src/androidMain
-    // (a MainActivity.kt + AndroidManifest.xml are staged in ./androidApp
-    // for reference). Requires the Android SDK + Google's Maven repo.
 
     sourceSets {
         commonMain.dependencies {
@@ -37,6 +34,15 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
         }
+    }
+}
+
+android {
+    namespace = "com.grocemaxxer.app"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }
 

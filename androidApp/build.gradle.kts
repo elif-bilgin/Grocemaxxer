@@ -1,9 +1,6 @@
-// Not wired into settings.gradle.kts by default -- see README.md
-// ("Adding the Android target") for the two-line change needed to enable it
-// once you have the Android SDK / Android Studio available.
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.androidApplication)
+    alias(libs.plugins.kotlinAndroid)
 }
 
 android {

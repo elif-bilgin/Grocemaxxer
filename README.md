@@ -28,9 +28,9 @@ data, to make it more accurate for a specific store.
 ## Project layout
 
 ```
-shared/       Pure Kotlin business logic (no UI deps) -- targets jvm + iOS
-composeApp/   Compose Multiplatform UI, shared across desktop/iOS/(Android)
-androidApp/   Android app module (not wired into the build by default, see below)
+shared/       Pure Kotlin business logic (no UI deps) -- targets jvm + android + iOS
+composeApp/   Compose Multiplatform UI, shared across desktop/android/iOS
+androidApp/   Android app module (thin wrapper: MainActivity + manifest)
 iosApp/       Swift entry point (needs an Xcode project wrapping it, see below)
 ```
 
@@ -51,16 +51,23 @@ Compose Multiplatform iOS integration -- see
 https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-ios.html)
 
 ### Android
-The Android module is staged in `androidApp/` but **not** included in
-`settings.gradle.kts` by default, and `shared`/`composeApp` don't declare an
-Android target yet. To enable it (needs Android Studio / the Android SDK):
+Needs the Android SDK (Android Studio is the easiest way to get it).
 
-1. In `settings.gradle.kts`, uncomment `include(":androidApp")`.
-2. In `shared/build.gradle.kts` and `composeApp/build.gradle.kts`, apply
-   `id("com.android.library")` and add `androidTarget()` next to `jvm()`.
-3. Add `shared/src/androidMain` / `composeApp/src/androidMain` source sets
-   if you need Android-specific code (none is required to start).
-4. Sync in Android Studio, run the `androidApp` configuration.
+1. Open the project root in Android Studio and let it sync (first sync
+   downloads the SDK platform/build-tools if needed).
+2. Plug in your phone via USB, enable Developer Options + USB debugging on
+   it (Settings -> About phone -> tap "Build number" 7 times -> Developer
+   options -> USB debugging), and accept the "Allow USB debugging?" prompt
+   on the phone.
+3. Your device should appear in Android Studio's device dropdown; select it
+   and click Run (▶) on the `androidApp` configuration. (Wireless
+   debugging works too, via `adb pair`, if you'd rather not use a cable.)
+
+Command-line equivalent, once a device shows up in `adb devices`:
+```
+./gradlew :androidApp:installDebug
+adb shell am start -n com.grocemaxxer.android/.MainActivity
+```
 
 ### Tests
 ```
@@ -86,9 +93,14 @@ That constrained what could actually be *run* here:
   Compose Multiplatform's UI runtime pulls in `androidx.lifecycle:lifecycle-viewmodel`
   from `dl.google.com` at run time, which this sandbox blocks. It should run
   normally in an environment with unrestricted network access.
-- Android and iOS compilation were not attempted here (no Android SDK, no
-  macOS/Xcode in this environment) -- see the build instructions above for
-  what's needed to build them elsewhere.
+- The Android target (`androidTarget()` in `shared`/`composeApp`, plus the
+  `androidApp` module) is wired into the build but was configured without
+  being able to run a single Android Gradle task here -- `dl.google.com` is
+  unreachable, so the Android Gradle Plugin itself can't even resolve. It
+  follows the standard Kotlin Multiplatform + Compose Multiplatform template
+  structure; it should sync and build normally in Android Studio.
+- iOS compilation was not attempted here (no macOS/Xcode in this
+  environment) -- see the build instructions above for what's needed.
 
 If you hit issues running `./gradlew :composeApp:run` or building for
 Android/iOS outside this sandbox, it's most likely a normal Gradle/SDK setup
