@@ -11,7 +11,9 @@ in the order they appear and you shouldn't have to double back.
 
 - `StoreSection` (`shared/.../StoreSection.kt`) enumerates store departments
   with a fixed `order` representing one sensible walking path through a
-  typical store.
+  typical store: floral/produce near the entrance, then bakery, deli, meat &
+  seafood, dairy, frozen, the center aisles, and finally personal care,
+  pharmacy, household, and pet supplies.
 - `ItemCategorizer` (`shared/.../ItemCategorizer.kt`) guesses an item's
   section from a static keyword table (`SectionKeywords.kt`), matching whole
   words/phrases (with basic plural handling) rather than raw substrings --
@@ -73,8 +75,21 @@ adb shell am start -n com.grocemaxxer.android/.MainActivity
 ```
 ./gradlew :shared:jvmTest
 ```
-Runs the categorizer/organizer unit tests on the JVM (the fastest common
-target to test against).
+Runs the categorizer/organizer/codec unit tests on the JVM (the fastest
+common target to test against).
+
+## Persistence
+
+The list and settings (theme color, dark mode) are stored with
+`androidx.datastore` (preferences, KMP artifact). Platform file locations
+are provided by `expect fun groceryDataStorePath()`:
+
+- Android: `<app files dir>/grocemaxxer.preferences_pb`
+- Desktop: `~/.grocemaxxer/grocemaxxer.preferences_pb`
+- iOS: app documents directory
+
+The item list itself is encoded into a single preferences value by
+`GroceryListCodec` in `shared` (unit-tested round-trip codec).
 
 ## Verification notes (sandbox limitations)
 
@@ -83,12 +98,17 @@ repository (`dl.google.com`) and JetBrains' download host are blocked by the
 outbound proxy, but Maven Central and the Gradle Plugin Portal are reachable.
 That constrained what could actually be *run* here:
 
-- `./gradlew :shared:jvmTest` -- ran successfully, all tests pass (this is
-  where the real logic lives and where two real bugs were caught and fixed:
-  an unmatched "eggplant" keyword, and plural phrases like "tortilla chips"
-  losing to a shorter single-word match).
-- `./gradlew :composeApp:compileKotlinJvm` -- compiles cleanly, confirming
-  the UI code is valid against the Compose Multiplatform API.
+- The `shared` tests -- ran successfully, all tests pass (this is where the
+  real logic lives and where two real bugs were caught and fixed: an
+  unmatched "eggplant" keyword, and plural phrases like "tortilla chips"
+  losing to a shorter single-word match). After the Android target was
+  wired in, the sandbox could no longer even configure the root project
+  (AGP resolves from Google's Maven), so later runs used a standalone JVM
+  harness compiling `shared`'s sources directly.
+- `composeApp` originally compiled cleanly for the JVM in the sandbox;
+  after `androidx.datastore` was added (also hosted on Google's Maven), the
+  UI module could no longer be compiled there and is verified by building
+  on a normal dev machine instead.
 - `./gradlew :composeApp:run` (Desktop) -- could **not** be executed here:
   Compose Multiplatform's UI runtime pulls in `androidx.lifecycle:lifecycle-viewmodel`
   from `dl.google.com` at run time, which this sandbox blocks. It should run

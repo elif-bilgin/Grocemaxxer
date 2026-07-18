@@ -30,9 +30,16 @@ class ItemCategorizerTest {
             "sparkling water" to StoreSection.BEVERAGES,
             "ketchup" to StoreSection.CONDIMENTS_SAUCES,
             "curry paste" to StoreSection.INTERNATIONAL,
-            "shampoo" to StoreSection.HEALTH_BEAUTY,
+            "shampoo" to StoreSection.PERSONAL_CARE,
+            "mascara" to StoreSection.PERSONAL_CARE,
+            "vitamins" to StoreSection.PHARMACY,
+            "ibuprofen" to StoreSection.PHARMACY,
             "paper towels" to StoreSection.HOUSEHOLD,
+            "garbage bags" to StoreSection.HOUSEHOLD,
             "dog food" to StoreSection.PET,
+            "cat litter" to StoreSection.PET,
+            "flowers" to StoreSection.FLORAL,
+            "tulips" to StoreSection.FLORAL,
         )
 
         for ((input, expected) in cases) {

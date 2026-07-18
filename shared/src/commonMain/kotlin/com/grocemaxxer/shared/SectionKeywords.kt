@@ -13,6 +13,10 @@ package com.grocemaxxer.shared
  * needed for a given store.
  */
 internal val sectionKeywords: Map<StoreSection, List<String>> = mapOf(
+    StoreSection.FLORAL to listOf(
+        "flower", "bouquet", "rose", "tulip", "lily", "orchid", "daisy", "sunflower",
+        "carnation", "peony", "succulent", "houseplant", "potted plant", "vase",
+    ),
     StoreSection.PRODUCE to listOf(
         "apple", "banana", "orange", "grape", "strawberry", "blueberry", "raspberry",
         "blackberry", "melon", "watermelon", "cantaloupe", "pineapple", "mango", "peach",
@@ -91,19 +95,30 @@ internal val sectionKeywords: Map<StoreSection, List<String>> = mapOf(
         "sesame oil", "rice vinegar", "hoisin", "miso", "tahini", "wasabi", "adobo",
         "enchilada sauce", "fish sauce",
     ),
-    StoreSection.HEALTH_BEAUTY to listOf(
+    StoreSection.PERSONAL_CARE to listOf(
         "shampoo", "conditioner", "soap", "body wash", "toothpaste", "toothbrush",
-        "deodorant", "lotion", "sunscreen", "vitamin", "medicine", "pain reliever",
-        "band-aid", "razor", "cotton swab", "floss",
+        "mouthwash", "deodorant", "lotion", "moisturizer", "sunscreen", "razor",
+        "shaving cream", "cotton swab", "floss", "makeup", "mascara", "lipstick",
+        "eyeliner", "foundation", "nail polish", "face wash", "skincare", "lip balm",
+        "chapstick", "hair gel", "hairspray", "tampon", "cosmetics",
+    ),
+    StoreSection.PHARMACY to listOf(
+        "vitamin", "medicine", "pain reliever", "ibuprofen", "acetaminophen", "tylenol",
+        "advil", "aspirin", "band-aid", "bandage", "cough drop", "cough syrup",
+        "cold medicine", "allergy medicine", "antacid", "supplement", "melatonin",
+        "probiotic", "thermometer", "first aid",
     ),
     StoreSection.HOUSEHOLD to listOf(
         "paper towel", "toilet paper", "tissue", "napkin", "dish soap", "dishwasher pod",
-        "laundry detergent", "fabric softener", "trash bag", "aluminum foil",
-        "plastic wrap", "sponge", "cleaning spray", "disinfectant wipe", "batteries",
-        "light bulb", "candle", "air freshener",
+        "laundry detergent", "fabric softener", "trash bag", "garbage bag",
+        "aluminum foil", "plastic wrap", "parchment paper", "sandwich bag", "ziploc",
+        "sponge", "cleaning spray", "all-purpose cleaner", "glass cleaner", "bleach",
+        "disinfectant wipe", "mop", "broom", "dryer sheet", "batteries", "light bulb",
+        "candle", "air freshener", "cleaning supplies",
     ),
     StoreSection.PET to listOf(
-        "dog food", "cat food", "pet treat", "cat litter", "dog treat", "pet toy",
-        "cat toy", "dog bone",
+        "dog food", "cat food", "pet food", "pet treat", "cat litter", "litter",
+        "kibble", "dog treat", "pet toy", "cat toy", "dog bone", "bird seed",
+        "fish food", "pet shampoo",
     ),
 )

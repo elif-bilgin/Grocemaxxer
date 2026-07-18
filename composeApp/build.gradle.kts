@@ -34,6 +34,9 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.components.resources)
+            implementation(libs.androidx.datastore.preferences.core)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.okio)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
