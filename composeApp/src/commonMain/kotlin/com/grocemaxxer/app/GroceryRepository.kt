@@ -129,6 +129,11 @@ class GroceryRepository(private val dataStore: DataStore<Preferences>) {
         editItems { current -> current.map { it.copy(isChecked = checked) } }
     }
 
+    /** Replaces today's list wholesale (used when importing a shared list). */
+    suspend fun replaceTodayList(newItems: List<GroceryItem>) {
+        editItems { newItems.map { it.copy(id = newId()) } }
+    }
+
     suspend fun setPalette(palette: ThemePalette) {
         dataStore.edit { it[paletteKey] = palette.name }
     }

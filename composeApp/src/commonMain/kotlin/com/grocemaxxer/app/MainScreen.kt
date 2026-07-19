@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -76,9 +77,11 @@ import androidx.compose.ui.unit.sp
 import com.grocemaxxer.shared.GroceryItem
 import com.grocemaxxer.shared.GroceryListOrganizer
 import com.grocemaxxer.shared.SectionGroup
+import com.grocemaxxer.shared.ShareTextCodec
 import com.grocemaxxer.shared.Store
 import com.grocemaxxer.shared.StoreSection
 import com.grocemaxxer.shared.fullDateLabel
+import com.grocemaxxer.shared.shortDateLabel
 import grocemaxxer.composeapp.generated.resources.Res
 import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_background
 import kotlinx.coroutines.CoroutineScope
@@ -95,6 +98,7 @@ internal fun MainScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showAddSheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showShareSheet by remember { mutableStateOf(false) }
     var archiveExpanded by remember { mutableStateOf(false) }
     var showCompletion by remember { mutableStateOf(false) }
 
@@ -175,6 +179,13 @@ internal fun MainScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                    IconButton(onClick = { showShareSheet = true }) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Share list",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
                     IconButton(onClick = { showSettingsSheet = true }) {
                         Icon(
@@ -330,6 +341,18 @@ internal fun MainScreen(
             onDismiss = { showSettingsSheet = false },
             onPaletteSelected = { scope.launch { repository.setPalette(it) } },
             onDarkModeChanged = { scope.launch { repository.setDarkMode(it) } },
+        )
+    }
+
+    if (showShareSheet) {
+        ShareSheet(
+            items = items,
+            todayIso = repository.todayIso,
+            onDismiss = { showShareSheet = false },
+            onOverwrite = { received ->
+                scope.launch { repository.replaceTodayList(received) }
+                showShareSheet = false
+            },
         )
     }
 }
@@ -690,6 +713,167 @@ private fun AddItemSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
+        }
+    }
+}
+
+/** State of the paste-a-received-list flow inside the share sheet. */
+private sealed interface ImportState {
+    data object Idle : ImportState
+    data object NotAList : ImportState
+    data object Identical : ImportState
+    data class Different(
+        val received: List<GroceryItem>,
+        val diff: ShareTextCodec.ListDiff,
+    ) : ImportState
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ShareSheet(
+    items: List<GroceryItem>,
+    todayIso: String,
+    onDismiss: () -> Unit,
+    onOverwrite: (List<GroceryItem>) -> Unit,
+) {
+    var pasteText by remember { mutableStateOf("") }
+    var importState by remember { mutableStateOf<ImportState>(ImportState.Idle) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 40.dp)) {
+            Text(
+                text = "Share & Sync",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(14.dp))
+
+            Button(
+                onClick = {
+                    shareListText(ShareTextCodec.encode(items, shortDateLabel(todayIso)))
+                    onDismiss()
+                },
+                enabled = items.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                contentPadding = PaddingValues(vertical = 14.dp),
+            ) {
+                Text("Send my list (${items.size} items)", fontWeight = FontWeight.Bold)
+            }
+            Text(
+                text = "Sends a text version of your list — readable in any messaging app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+
+            Spacer(Modifier.height(20.dp))
+            Text("Got a list from someone?", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = pasteText,
+                onValueChange = {
+                    pasteText = it
+                    importState = ImportState.Idle
+                },
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                placeholder = { Text("Paste the whole message here…") },
+                shape = RoundedCornerShape(16.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = {
+                    val received = ShareTextCodec.parse(pasteText)
+                    importState = when {
+                        received == null -> ImportState.NotAList
+                        ShareTextCodec.diff(items, received).isIdentical -> ImportState.Identical
+                        else -> ImportState.Different(received, ShareTextCodec.diff(items, received))
+                    }
+                },
+                enabled = pasteText.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                contentPadding = PaddingValues(vertical = 12.dp),
+            ) {
+                Text("Check received list")
+            }
+
+            when (val state = importState) {
+                ImportState.Idle -> {}
+                ImportState.NotAList -> Text(
+                    text = "That doesn't look like a grocemaxxer list — paste the whole message, including the 🧺 header line.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                ImportState.Identical -> Text(
+                    text = "✓ That list matches yours exactly — nothing to update.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                is ImportState.Different -> {
+                    Spacer(Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
+                                text = "This list is different from yours",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = state.diff.summary() +
+                                    " · ${state.received.size} items total",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (state.diff.added.isNotEmpty()) {
+                                Text(
+                                    text = "New: " + state.diff.added.joinToString(", "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                            if (state.diff.removed.isNotEmpty()) {
+                                Text(
+                                    text = "Not in theirs: " + state.diff.removed.joinToString(", "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = { onOverwrite(state.received) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            ) {
+                                Text("Overwrite my list with theirs", fontWeight = FontWeight.Bold)
+                            }
+                            TextButton(
+                                onClick = { importState = ImportState.Idle },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Keep mine")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
