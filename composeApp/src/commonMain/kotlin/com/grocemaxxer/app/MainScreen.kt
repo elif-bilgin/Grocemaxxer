@@ -34,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -184,9 +183,12 @@ internal fun MainScreen(
                         )
                         Text(
                             text = fullDateLabel(repository.todayIso),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    TextButton(onClick = { showImportSheet = true }) {
+                        Text("Import", fontWeight = FontWeight.Bold)
                     }
                     IconButton(
                         onClick = {
@@ -199,13 +201,6 @@ internal fun MainScreen(
                         Icon(
                             Icons.Default.Share,
                             contentDescription = "Share list",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    IconButton(onClick = { showImportSheet = true }) {
-                        Icon(
-                            Icons.Default.MailOutline,
-                            contentDescription = "Import a received list",
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
