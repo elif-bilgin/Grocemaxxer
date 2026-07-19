@@ -89,4 +89,61 @@ class ShareTextCodecTest {
 
         assertTrue(ShareTextCodec.diff(mine, received).isIdentical)
     }
+
+    @Test
+    fun mergeAppliesOnlySelectedChoices() {
+        val mine = listOf(
+            item("Milk"),
+            item("Apples"),
+            item("Bread", checked = false),
+            item("Cheese", checked = false),
+        )
+        val theirs = listOf(
+            item("Milk"),
+            item("Eggs"),
+            item("Butter"),
+            item("Bread", checked = true),
+            item("Cheese", checked = true),
+        )
+
+        val merged = ShareTextCodec.merge(
+            current = mine,
+            received = theirs,
+            acceptAdds = setOf("Eggs"), // take Eggs, skip Butter
+            acceptRemovals = setOf("apples"), // drop Apples (case-insensitive)
+            acceptChecks = setOf("Bread"), // take their Bread check, keep my Cheese state
+        )
+
+        val byName = merged.associateBy { it.name }
+        assertEquals(setOf("Milk", "Bread", "Cheese", "Eggs"), byName.keys)
+        assertTrue(byName.getValue("Bread").isChecked)
+        assertEquals(false, byName.getValue("Cheese").isChecked)
+    }
+
+    @Test
+    fun mergeWithNoSelectionsKeepsMyListUntouched() {
+        val mine = listOf(item("Milk"), item("Apples", checked = true))
+        val theirs = listOf(item("Eggs"), item("Milk", checked = true))
+
+        val merged = ShareTextCodec.merge(mine, theirs, emptySet(), emptySet(), emptySet())
+
+        assertEquals(mine, merged)
+    }
+
+    @Test
+    fun mergeAcceptingEverythingMatchesOverwriteSemanticsForDiffedItems() {
+        val mine = listOf(item("Milk"), item("Apples"))
+        val theirs = listOf(item("Milk", checked = true), item("Eggs"))
+        val diff = ShareTextCodec.diff(mine, theirs)
+
+        val merged = ShareTextCodec.merge(
+            current = mine,
+            received = theirs,
+            acceptAdds = diff.added.toSet(),
+            acceptRemovals = diff.removed.toSet(),
+            acceptChecks = diff.checkChanged.toSet(),
+        )
+
+        assertTrue(ShareTextCodec.diff(merged, theirs).isIdentical)
+    }
 }

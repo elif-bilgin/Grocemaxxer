@@ -878,8 +878,13 @@ private fun ImportSheet(
 ) {
     var pasteText by remember { mutableStateOf("") }
     var importState by remember { mutableStateOf<ImportState>(ImportState.Idle) }
+    var mergeMode by remember { mutableStateOf(false) }
+    var addSelections by remember { mutableStateOf(setOf<String>()) }
+    var keepSelections by remember { mutableStateOf(setOf<String>()) }
+    var checkSelections by remember { mutableStateOf(setOf<String>()) }
 
     fun check(text: String): ImportState {
+        mergeMode = false
         val received = ShareTextCodec.parse(text) ?: return ImportState.NotAList
         val diff = ShareTextCodec.diff(items, received)
         return if (diff.isIdentical) ImportState.Identical else ImportState.Different(received, diff)
@@ -897,7 +902,11 @@ private fun ImportSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 40.dp)) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(start = 24.dp, end = 24.dp, bottom = 40.dp),
+        ) {
             Text(
                 text = "Import a List",
                 style = MaterialTheme.typography.titleLarge,
@@ -966,45 +975,165 @@ private fun ImportSheet(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            if (state.diff.added.isNotEmpty()) {
-                                Text(
-                                    text = "New: " + state.diff.added.joinToString(", "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                            if (state.diff.removed.isNotEmpty()) {
-                                Text(
-                                    text = "Not in theirs: " + state.diff.removed.joinToString(", "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 2.dp),
-                                )
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = { onOverwrite(state.received) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
-                            ) {
-                                Text("Overwrite my list with theirs", fontWeight = FontWeight.Bold)
-                            }
-                            TextButton(
-                                onClick = { importState = ImportState.Idle },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Keep mine")
+                            if (!mergeMode) {
+                                if (state.diff.added.isNotEmpty()) {
+                                    Text(
+                                        text = "New: " + state.diff.added.joinToString(", "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                    )
+                                }
+                                if (state.diff.removed.isNotEmpty()) {
+                                    Text(
+                                        text = "Not in theirs: " + state.diff.removed.joinToString(", "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Button(
+                                    onClick = { onOverwrite(state.received) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                ) {
+                                    Text("Overwrite my list with theirs", fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                Button(
+                                    onClick = {
+                                        addSelections = state.diff.added.toSet()
+                                        keepSelections = state.diff.removed.toSet()
+                                        checkSelections = state.diff.checkChanged.toSet()
+                                        mergeMode = true
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    ),
+                                ) {
+                                    Text("Merge manually…", fontWeight = FontWeight.Bold)
+                                }
+                                TextButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Cancel import")
+                                }
+                            } else {
+                                Spacer(Modifier.height(10.dp))
+                                if (state.diff.added.isNotEmpty()) {
+                                    Text(
+                                        text = "Add from their list",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    state.diff.added.forEach { name ->
+                                        MergeChoiceRow(
+                                            label = name,
+                                            checked = name in addSelections,
+                                            onToggle = { addSelections = addSelections.toggled(name) },
+                                        )
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                }
+                                if (state.diff.removed.isNotEmpty()) {
+                                    Text(
+                                        text = "Keep items they don't have",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        text = "Unchecked items will be removed from your list",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    state.diff.removed.forEach { name ->
+                                        MergeChoiceRow(
+                                            label = name,
+                                            checked = name in keepSelections,
+                                            onToggle = { keepSelections = keepSelections.toggled(name) },
+                                        )
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                }
+                                if (state.diff.checkChanged.isNotEmpty()) {
+                                    Text(
+                                        text = "Take their check-off status",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    state.diff.checkChanged.forEach { name ->
+                                        MergeChoiceRow(
+                                            label = name,
+                                            checked = name in checkSelections,
+                                            onToggle = { checkSelections = checkSelections.toggled(name) },
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Button(
+                                    onClick = {
+                                        onOverwrite(
+                                            ShareTextCodec.merge(
+                                                current = items,
+                                                received = state.received,
+                                                acceptAdds = addSelections,
+                                                acceptRemovals = state.diff.removed.toSet() - keepSelections,
+                                                acceptChecks = checkSelections,
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                ) {
+                                    Text("Apply merge", fontWeight = FontWeight.Bold)
+                                }
+                                TextButton(
+                                    onClick = { mergeMode = false },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Back")
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun Set<String>.toggled(name: String): Set<String> =
+    if (name in this) this - name else this + name
+
+@Composable
+private fun MergeChoiceRow(
+    label: String,
+    checked: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

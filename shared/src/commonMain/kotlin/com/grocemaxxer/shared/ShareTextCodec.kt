@@ -86,6 +86,45 @@ object ShareTextCodec {
         }
     }
 
+    /**
+     * Builds a merged list from [current] and [received] according to
+     * manual choices (all matched case/whitespace-insensitively):
+     * - [acceptAdds]: received-only item names to add to my list
+     * - [acceptRemovals]: my-only item names to delete because theirs
+     *   doesn't have them
+     * - [acceptChecks]: item names whose checked state should be taken
+     *   from the received list
+     */
+    fun merge(
+        current: List<GroceryItem>,
+        received: List<GroceryItem>,
+        acceptAdds: Set<String>,
+        acceptRemovals: Set<String>,
+        acceptChecks: Set<String>,
+    ): List<GroceryItem> {
+        val receivedByKey = received.associateBy { it.name.toDedupeKey() }
+        val currentKeys = current.map { it.name.toDedupeKey() }.toSet()
+        val addKeys = acceptAdds.map { it.toDedupeKey() }.toSet()
+        val removalKeys = acceptRemovals.map { it.toDedupeKey() }.toSet()
+        val checkKeys = acceptChecks.map { it.toDedupeKey() }.toSet()
+
+        val kept = current
+            .filterNot { it.name.toDedupeKey() in removalKeys }
+            .map { item ->
+                val theirs = receivedByKey[item.name.toDedupeKey()]
+                if (theirs != null && item.name.toDedupeKey() in checkKeys) {
+                    item.copy(isChecked = theirs.isChecked)
+                } else {
+                    item
+                }
+            }
+        val additions = received.filter {
+            val key = it.name.toDedupeKey()
+            key in addKeys && key !in currentKeys
+        }
+        return kept + additions
+    }
+
     /** What would change if [received] replaced [current]. */
     fun diff(current: List<GroceryItem>, received: List<GroceryItem>): ListDiff {
         val currentByKey = current.associateBy { it.name.toDedupeKey() }
