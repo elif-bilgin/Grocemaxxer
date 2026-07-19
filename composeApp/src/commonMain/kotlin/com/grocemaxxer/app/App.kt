@@ -72,6 +72,10 @@ fun App() {
         }
     }
 
+    // Back gesture on the list returns to the welcome screen instead of
+    // exiting the app; back on the welcome screen exits as usual.
+    PlatformBackHandler(enabled = !showWelcome) { showWelcome = true }
+
     GrocemaxxerTheme(settings.palette, settings.darkMode) {
         Surface(
             modifier = Modifier.fillMaxSize(),

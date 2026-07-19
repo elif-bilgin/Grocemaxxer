@@ -41,6 +41,9 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
         }
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+        }
     }
 }
 
