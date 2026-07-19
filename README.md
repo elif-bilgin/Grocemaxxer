@@ -42,6 +42,14 @@ salesman solve over item pairs -- extend `SectionKeywords.kt` with more
 keywords/sections, or swap `ItemCategorizer` for a real store's planogram
 data, to make it more accurate for a specific store.
 
+## Branding
+
+- Wordmark (start screen + main header): `composeApp/src/commonMain/composeResources/drawable/grocemaxxer_title_no_background.png`
+- In-app basket logo: `composeApp/src/commonMain/composeResources/drawable/grocemaxxer_logo.png`
+- Android launcher icon: `androidApp/src/main/res/drawable/ic_launcher_foreground.png`
+
+Overwrite these files (same names) to rebrand; no code changes needed.
+
 ## Project layout
 
 ```
