@@ -221,11 +221,11 @@ internal fun MainScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Row {
-                            TextButton(onClick = { scope.launch { repository.clearChecked() } }) {
-                                Text("Clear checked")
+                            TextButton(onClick = { scope.launch { repository.setAllChecked(false) } }) {
+                                Text("Uncheck all")
                             }
-                            TextButton(onClick = { scope.launch { repository.clearAll() } }) {
-                                Text("Clear all")
+                            TextButton(onClick = { scope.launch { repository.setAllChecked(true) } }) {
+                                Text("Check all")
                             }
                         }
                     }
@@ -325,11 +325,19 @@ private fun StoreSelectorRow(
     onSelect: (Store) -> Unit,
 ) {
     val rowState = rememberLazyListState()
+    // Selected store leads the row; the rest keep their canonical order.
+    // Keyed items + animateItem make the promotion a slide, not a jump.
+    val orderedStores = listOf(selected) + Store.entries.filter { it != selected }
+
+    LaunchedEffect(selected) {
+        rowState.animateScrollToItem(0)
+    }
+
     LazyRow(
         state = rowState,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(Store.entries.toList(), key = { it.name }) { store ->
+        items(orderedStores, key = { it.name }) { store ->
             val isSelected = store == selected
             Surface(
                 onClick = { onSelect(store) },
@@ -344,6 +352,7 @@ private fun StoreSelectorRow(
                 } else {
                     null
                 },
+                modifier = Modifier.animateItem(),
             ) {
                 Text(
                     text = "🏪 ${store.displayName}",

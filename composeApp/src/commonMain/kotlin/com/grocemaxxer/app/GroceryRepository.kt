@@ -125,12 +125,8 @@ class GroceryRepository(private val dataStore: DataStore<Preferences>) {
         editItems { current -> current.filterNot { it.id == id } }
     }
 
-    suspend fun clearChecked() {
-        editItems { current -> current.filterNot { it.isChecked } }
-    }
-
-    suspend fun clearAll() {
-        editItems { emptyList() }
+    suspend fun setAllChecked(checked: Boolean) {
+        editItems { current -> current.map { it.copy(isChecked = checked) } }
     }
 
     suspend fun setPalette(palette: ThemePalette) {
