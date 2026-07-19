@@ -171,22 +171,23 @@ internal fun MainScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column {
-                            Image(
-                                painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
-                                contentDescription = "grocemaxxer",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(60.dp),
-                                contentScale = ContentScale.Fit,
-                            )
-                            Text(
-                                text = fullDateLabel(repository.todayIso),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    // weight(1f) keeps the wordmark from consuming the whole
+                    // row and pushing the share/settings buttons off-screen.
+                    Column(modifier = Modifier.weight(1f)) {
+                        Image(
+                            painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
+                            contentDescription = "grocemaxxer",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            contentScale = ContentScale.Fit,
+                            alignment = Alignment.CenterStart,
+                        )
+                        Text(
+                            text = fullDateLabel(repository.todayIso),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     IconButton(onClick = { showShareSheet = true }) {
                         Icon(
@@ -226,21 +227,7 @@ internal fun MainScreen(
                     },
                     shape = RoundedCornerShape(24.dp),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                    ),
+                    colors = themedTextFieldColors(),
                 )
                 Spacer(Modifier.height(10.dp))
 
@@ -699,6 +686,7 @@ private fun AddItemSheet(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
+                colors = themedTextFieldColors(),
             )
             if (suggestions.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
@@ -738,6 +726,7 @@ private fun AddItemSheet(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
+                    colors = themedTextFieldColors(),
                 )
                 ExposedDropdownMenu(
                     expanded = dropdownExpanded,
@@ -848,6 +837,27 @@ private fun AddItemSheet(
     }
 }
 
+/**
+ * Text-field colors that follow the active theme: filled with the
+ * palette's pastel container, borderless until focused.
+ */
+@Composable
+private fun themedTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = Color.Transparent,
+    focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    unfocusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+    cursorColor = MaterialTheme.colorScheme.primary,
+)
+
 /** State of the paste-a-received-list flow inside the share sheet. */
 private sealed interface ImportState {
     data object Idle : ImportState
@@ -914,6 +924,7 @@ private fun ShareSheet(
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 placeholder = { Text("Paste the whole message here…") },
                 shape = RoundedCornerShape(16.dp),
+                colors = themedTextFieldColors(),
             )
             Spacer(Modifier.height(10.dp))
             Button(
