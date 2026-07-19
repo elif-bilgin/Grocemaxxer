@@ -10,6 +10,12 @@ plugins {
 }
 
 kotlin {
+    // Room's generated RoomDatabaseConstructor actuals rely on
+    // expect/actual classes, which are Beta -- opt in to silence the warning.
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     jvm()
     androidTarget {
         compilerOptions {
