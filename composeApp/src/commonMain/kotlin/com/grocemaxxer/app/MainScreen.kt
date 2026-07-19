@@ -873,7 +873,7 @@ private fun themedTextFieldColors() = OutlinedTextFieldDefaults.colors(
     cursorColor = MaterialTheme.colorScheme.primary,
 )
 
-/** State of the paste-a-received-list flow inside the share sheet. */
+/** State of the paste-a-received-list flow inside the import sheet. */
 private sealed interface ImportState {
     data object Idle : ImportState
     data object NotAList : ImportState
