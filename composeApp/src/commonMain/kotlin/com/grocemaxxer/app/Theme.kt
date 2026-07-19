@@ -1,6 +1,8 @@
 package com.grocemaxxer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -61,6 +63,27 @@ fun GrocemaxxerTheme(
     }
     MaterialTheme(colorScheme = colorScheme, content = content)
 }
+
+/**
+ * Text-field colors that follow the active theme: filled with the
+ * palette's pastel container, borderless until focused.
+ */
+@Composable
+internal fun themedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = Color.Transparent,
+    focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    unfocusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+    cursorColor = MaterialTheme.colorScheme.primary,
+)
 
 /** Cosmetic styling for a store section: emoji badge + pastel card colors. */
 data class SectionStyle(

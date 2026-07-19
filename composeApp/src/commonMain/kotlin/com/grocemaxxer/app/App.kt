@@ -1,6 +1,5 @@
 package com.grocemaxxer.app
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,7 +38,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,6 +49,8 @@ import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_backgroun
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
+private enum class AppScreen { Welcome, Main, Import }
+
 @Composable
 fun App() {
     val repository = remember { GroceryRepository(groceryDataStore) }
@@ -57,12 +59,16 @@ fun App() {
     val settings by repository.settings.collectAsState(initial = AppSettings())
     val items by repository.items.collectAsState(initial = emptyList())
     val storedDates by repository.storedDates.collectAsState(initial = emptyList())
+    val account by repository.account.collectAsState(initial = null)
 
     LaunchedEffect(Unit) { catalog.ensureSeeded() }
 
-    var showWelcome by remember { mutableStateOf(true) }
+    var screen by remember { mutableStateOf(AppScreen.Welcome) }
     var showDatePicker by remember { mutableStateOf(false) }
     var pendingAdoptDate by remember { mutableStateOf<String?>(null) }
+    var guestMode by remember { mutableStateOf(false) }
+    var authBusy by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf(false) }
 
     fun adoptOrAsk(isoDate: String) {
         scope.launch {
@@ -71,29 +77,51 @@ fun App() {
                 pendingAdoptDate = isoDate
             } else {
                 repository.adoptList(isoDate, clearChecked = false)
-                showWelcome = false
+                screen = AppScreen.Main
             }
         }
     }
 
-    // Back gesture on the list returns to the welcome screen instead of
-    // exiting the app; back on the welcome screen exits as usual.
-    PlatformBackHandler(enabled = !showWelcome) { showWelcome = true }
+    // Back gesture: Import -> Main -> Welcome -> exit app.
+    PlatformBackHandler(enabled = screen != AppScreen.Welcome) {
+        screen = when (screen) {
+            AppScreen.Import -> AppScreen.Main
+            else -> AppScreen.Welcome
+        }
+    }
 
     GrocemaxxerTheme(settings.palette, settings.darkMode) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            if (showWelcome) {
-                WelcomeScreen(
+            when (screen) {
+                AppScreen.Welcome -> WelcomeScreen(
+                    account = account,
+                    guestMode = guestMode,
                     hasStoredLists = storedDates.isNotEmpty(),
+                    authBusy = authBusy,
+                    authError = authError,
+                    onSignIn = {
+                        scope.launch {
+                            authBusy = true
+                            authError = false
+                            val signedIn = platformSignInWithGoogle()
+                            if (signedIn != null) {
+                                repository.setAccount(signedIn)
+                            } else {
+                                authError = true
+                            }
+                            authBusy = false
+                        }
+                    },
+                    onContinueAsGuest = { guestMode = true },
                     onUsePrevious = {
                         val latest = storedDates.firstOrNull()
                         if (latest == null) {
                             scope.launch {
                                 repository.startNewList()
-                                showWelcome = false
+                                screen = AppScreen.Main
                             }
                         } else {
                             adoptOrAsk(latest)
@@ -102,18 +130,31 @@ fun App() {
                     onStartNew = {
                         scope.launch {
                             repository.startNewList()
-                            showWelcome = false
+                            screen = AppScreen.Main
                         }
                     },
                     onPickFromDate = { showDatePicker = true },
                 )
-            } else {
-                MainScreen(
+                AppScreen.Main -> MainScreen(
                     repository = repository,
                     catalog = catalog,
                     scope = scope,
                     items = items,
                     settings = settings,
+                    account = account,
+                    onOpenImport = { screen = AppScreen.Import },
+                    onLoggedOut = {
+                        guestMode = false
+                        screen = AppScreen.Welcome
+                    },
+                )
+                AppScreen.Import -> ImportScreen(
+                    items = items,
+                    onBack = { screen = AppScreen.Main },
+                    onApply = { received ->
+                        scope.launch { repository.replaceTodayList(received) }
+                        screen = AppScreen.Main
+                    },
                 )
             }
         }
@@ -146,7 +187,7 @@ fun App() {
                         pendingAdoptDate = null
                         scope.launch {
                             repository.adoptList(isoDate, clearChecked = true)
-                            showWelcome = false
+                            screen = AppScreen.Main
                         }
                     },
                 ) { Text("Clear checked") }
@@ -157,7 +198,7 @@ fun App() {
                         pendingAdoptDate = null
                         scope.launch {
                             repository.adoptList(isoDate, clearChecked = false)
-                            showWelcome = false
+                            screen = AppScreen.Main
                         }
                     },
                 ) { Text("Keep progress") }
@@ -168,13 +209,22 @@ fun App() {
 
 @Composable
 private fun WelcomeScreen(
+    account: UserAccount?,
+    guestMode: Boolean,
     hasStoredLists: Boolean,
+    authBusy: Boolean,
+    authError: Boolean,
+    onSignIn: () -> Unit,
+    onContinueAsGuest: () -> Unit,
     onUsePrevious: () -> Unit,
     onStartNew: () -> Unit,
     onPickFromDate: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -193,47 +243,95 @@ private fun WelcomeScreen(
         Text(
             text = "Your grocery run, optimized.",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF3F3260),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(40.dp))
-        Button(
-            onClick = onUsePrevious,
-            enabled = hasStoredLists,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ),
-            contentPadding = PaddingValues(vertical = 14.dp),
-        ) {
-            Text("USE PREVIOUS LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+
+        if (account == null && !guestMode) {
+            Button(
+                onClick = onSignIn,
+                enabled = !authBusy,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                contentPadding = PaddingValues(vertical = 14.dp),
+            ) {
+                Text(
+                    text = if (authBusy) "SIGNING IN…" else "LOG IN WITH GOOGLE",
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onSignIn,
+                enabled = !authBusy,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                contentPadding = PaddingValues(vertical = 14.dp),
+            ) {
+                Text("SIGN UP WITH GOOGLE", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            }
+            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = onContinueAsGuest, enabled = !authBusy) {
+                Text("Continue without an account")
+            }
+            if (authError) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Couldn't sign in. If this keeps happening, Google Sign-In may " +
+                        "not be configured yet (see README) — you can continue without " +
+                        "an account in the meantime.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        } else {
+            if (account != null) {
+                Text(
+                    text = "Signed in as ${account.displayName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+            Button(
+                onClick = onUsePrevious,
+                enabled = hasStoredLists,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                contentPadding = PaddingValues(vertical = 14.dp),
+            ) {
+                Text("USE PREVIOUS LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onStartNew,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                contentPadding = PaddingValues(vertical = 14.dp),
+            ) {
+                Text("START NEW LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            }
+            Spacer(Modifier.height(12.dp))
+            TextButton(
+                onClick = onPickFromDate,
+                enabled = hasStoredLists,
+            ) {
+                Text("Use list from a date…")
+            }
         }
-        Spacer(Modifier.height(12.dp))
-        OutlinedButton(
-            onClick = onStartNew,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ),
-            contentPadding = PaddingValues(vertical = 14.dp),
-        ) {
-            Text(
-                "START NEW LIST",
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp,
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-        TextButton(
-            onClick = onPickFromDate,
-            enabled = hasStoredLists,
-        ) {
-            Text("Use list from a date…")
-        }
+        Spacer(Modifier.height(28.dp))
     }
 }
 

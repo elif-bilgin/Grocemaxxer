@@ -50,6 +50,33 @@ salesman solve over item pairs -- extend `SectionKeywords.kt` with more
 keywords/sections, or swap `ItemCategorizer` for a real store's planogram
 data, to make it more accurate for a specific store.
 
+## Google Sign-In setup
+
+The welcome screen offers Log In / Sign Up with Google (via Android's
+Credential Manager). It stays in a friendly "couldn't sign in" state until
+an OAuth client ID is configured -- one-time setup, needs your Google
+account:
+
+1. Go to https://console.cloud.google.com/ -> create (or pick) a project.
+2. APIs & Services -> OAuth consent screen: configure an External consent
+   screen (app name "grocemaxxer", your email; no scopes beyond the basics
+   needed).
+3. APIs & Services -> Credentials -> Create Credentials -> OAuth client ID:
+   - Create one of type **Android**: package name `com.grocemaxxer.android`,
+     SHA-1 from `./gradlew signingReport` (the `debug` variant's SHA1).
+   - Create one of type **Web application** (no redirect URIs needed).
+4. Copy the **Web application** client ID (ends in
+   `.apps.googleusercontent.com`) into `GOOGLE_WEB_CLIENT_ID` in
+   `composeApp/src/androidMain/kotlin/com/grocemaxxer/app/Auth.android.kt`.
+5. Rebuild. Sign-in state persists across app launches until you log out
+   (Settings -> Account -> Log Out).
+
+"Continue without an account" keeps the whole app usable without any of
+this. Desktop/iOS sign-in is stubbed out (returns not-supported).
+Account-to-account list sync additionally needs a backend (see the
+Firestore plan in the project discussions); this provides the identity
+layer for it.
+
 ## Branding
 
 - Wordmark (start screen + main header): `composeApp/src/commonMain/composeResources/drawable/grocemaxxer_title_no_background.png`
