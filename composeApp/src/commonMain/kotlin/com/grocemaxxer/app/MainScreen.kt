@@ -423,7 +423,7 @@ private fun EmptyListPlaceholder() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🧺", fontSize = 64.sp)
+        BasketLogo(size = 120.dp)
         Spacer(Modifier.height(16.dp))
         Text(
             text = "Your basket is empty",
