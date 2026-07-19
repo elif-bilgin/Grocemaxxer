@@ -355,7 +355,7 @@ private fun StoreSelectorRow(
                 modifier = Modifier.animateItem(),
             ) {
                 Text(
-                    text = "🏪 ${store.displayName}",
+                    text = "${store.emoji} ${store.displayName}",
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,

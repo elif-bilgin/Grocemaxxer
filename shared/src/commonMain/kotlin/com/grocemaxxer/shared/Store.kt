@@ -9,12 +9,12 @@ package com.grocemaxxer.shared
  * them, proteins in the second half of the trip, frozen right before
  * checkout, delicate bakery items last.
  */
-enum class Store(val displayName: String) {
-    DEFAULT("Default"),
-    SAFEWAY("Safeway"),
-    WHOLE_FOODS("Whole Foods"),
-    TARGET("Target"),
-    TRADER_JOES("Trader Joe's"),
+enum class Store(val displayName: String, val emoji: String) {
+    DEFAULT("No Store Selected", "🍎"),
+    SAFEWAY("Safeway", "🛒"),
+    WHOLE_FOODS("Whole Foods", "🥑"),
+    TARGET("Target", "🎯"),
+    TRADER_JOES("Trader Joe's", "🌺"),
     ;
 
     companion object {
