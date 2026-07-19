@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -70,6 +71,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -106,7 +108,7 @@ internal fun MainScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showAddSheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
-    var showShareSheet by remember { mutableStateOf(false) }
+    var showImportSheet by remember { mutableStateOf(false) }
     var archiveExpanded by remember { mutableStateOf(false) }
     var showCompletion by remember { mutableStateOf(false) }
 
@@ -189,10 +191,24 @@ internal fun MainScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    IconButton(onClick = { showShareSheet = true }) {
+                    IconButton(
+                        onClick = {
+                            shareListText(
+                                ShareTextCodec.encode(items, shortDateLabel(repository.todayIso)),
+                            )
+                        },
+                        enabled = items.isNotEmpty(),
+                    ) {
                         Icon(
                             Icons.Default.Share,
                             contentDescription = "Share list",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    IconButton(onClick = { showImportSheet = true }) {
+                        Icon(
+                            Icons.Default.MailOutline,
+                            contentDescription = "Import a received list",
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -351,14 +367,13 @@ internal fun MainScreen(
         )
     }
 
-    if (showShareSheet) {
-        ShareSheet(
+    if (showImportSheet) {
+        ImportSheet(
             items = items,
-            todayIso = repository.todayIso,
-            onDismiss = { showShareSheet = false },
+            onDismiss = { showImportSheet = false },
             onOverwrite = { received ->
                 scope.launch { repository.replaceTodayList(received) }
-                showShareSheet = false
+                showImportSheet = false
             },
         )
     }
@@ -871,50 +886,45 @@ private sealed interface ImportState {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ShareSheet(
+private fun ImportSheet(
     items: List<GroceryItem>,
-    todayIso: String,
     onDismiss: () -> Unit,
     onOverwrite: (List<GroceryItem>) -> Unit,
 ) {
     var pasteText by remember { mutableStateOf("") }
     var importState by remember { mutableStateOf<ImportState>(ImportState.Idle) }
 
+    fun check(text: String): ImportState {
+        val received = ShareTextCodec.parse(text) ?: return ImportState.NotAList
+        val diff = ShareTextCodec.diff(items, received)
+        return if (diff.isIdentical) ImportState.Identical else ImportState.Different(received, diff)
+    }
+
+    // If the clipboard already holds a shared list (the expected flow:
+    // copy the message, then tap Import), prefill and check it instantly.
+    val clipboard = LocalClipboardManager.current
+    LaunchedEffect(Unit) {
+        val clip = clipboard.getText()?.text ?: return@LaunchedEffect
+        if (clip.lowercase().contains("grocemaxxer list")) {
+            pasteText = clip
+            importState = check(clip)
+        }
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 40.dp)) {
             Text(
-                text = "Share & Sync",
+                text = "Import a List",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
-            Spacer(Modifier.height(14.dp))
-
-            Button(
-                onClick = {
-                    shareListText(ShareTextCodec.encode(items, shortDateLabel(todayIso)))
-                    onDismiss()
-                },
-                enabled = items.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-                contentPadding = PaddingValues(vertical = 14.dp),
-            ) {
-                Text("Send my list (${items.size} items)", fontWeight = FontWeight.Bold)
-            }
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = "Sends a text version of your list — readable in any messaging app.",
+                text = "Copy the whole message you received, then open this sheet — it's picked up automatically. Or paste it below.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
             )
-
-            Spacer(Modifier.height(20.dp))
-            Text("Got a list from someone?", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = pasteText,
                 onValueChange = {
@@ -928,14 +938,7 @@ private fun ShareSheet(
             )
             Spacer(Modifier.height(10.dp))
             Button(
-                onClick = {
-                    val received = ShareTextCodec.parse(pasteText)
-                    importState = when {
-                        received == null -> ImportState.NotAList
-                        ShareTextCodec.diff(items, received).isIdentical -> ImportState.Identical
-                        else -> ImportState.Different(received, ShareTextCodec.diff(items, received))
-                    }
-                },
+                onClick = { importState = check(pasteText) },
                 enabled = pasteText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
