@@ -7,14 +7,18 @@ import com.grocemaxxer.shared.toDedupeKey
 
 /**
  * Room-backed catalog of known grocery items ("pre-saved potential items").
- * Seeded from [PresetCatalog] on first launch; grows as the user adds their
- * own items, so custom items get suggested on future trips too.
+ * Seeded from [PresetCatalog] on first launch. Deliberately static: typed
+ * items are NOT remembered, so a one-off typo ("Eggz") can never haunt the
+ * suggestions alongside "Egg" and "Eggs".
  */
 class CatalogRepository(private val database: CatalogDatabase = catalogDatabase) {
 
     private val dao get() = database.catalogDao()
 
     suspend fun ensureSeeded() {
+        // Purge anything recorded by older app versions that saved typed
+        // items into the catalog (the source of misspelled suggestions).
+        dao.deleteCustomItems()
         if (dao.count() == 0) {
             dao.insertAll(
                 PresetCatalog.items.map {
@@ -40,11 +44,6 @@ class CatalogRepository(private val database: CatalogDatabase = catalogDatabase)
 
     suspend fun itemsFor(section: StoreSection): List<CatalogItem> =
         dao.bySection(section.name).map { it.toCatalogItem() }
-
-    /** Records a user-typed item so it shows up in future suggestions. */
-    suspend fun recordCustom(name: String, section: StoreSection) {
-        dao.insertAll(listOf(CatalogItemEntity(name = name, sectionName = section.name, isCustom = true)))
-    }
 
     private fun CatalogItemEntity.toCatalogItem() = CatalogItem(
         name = name,

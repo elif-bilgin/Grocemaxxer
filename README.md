@@ -23,8 +23,9 @@ Features:
   category.
 - A Room 3 database of pre-saved items (~250, seeded from
   `shared/.../PresetCatalog.kt`) powers live suggestions as you type in
-  the add sheet plus a browse-by-aisle picker; items you type yourself
-  are remembered and suggested on future trips.
+  the add sheet plus a browse-by-aisle picker. The catalog is
+  intentionally static -- typed items are not remembered, so a one-off
+  typo never becomes a recurring suggestion.
 - Text-based sharing: send the list through the share sheet as a
   readable message, paste a received one to see a diff against yours,
   and opt in before overwriting.

@@ -79,10 +79,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grocemaxxer.shared.CatalogItem
-import com.grocemaxxer.shared.GroceryInputParser
 import com.grocemaxxer.shared.GroceryItem
 import com.grocemaxxer.shared.GroceryListOrganizer
-import com.grocemaxxer.shared.ItemCategorizer
 import com.grocemaxxer.shared.SectionGroup
 import com.grocemaxxer.shared.ShareTextCodec
 import com.grocemaxxer.shared.Store
@@ -90,7 +88,6 @@ import com.grocemaxxer.shared.StoreSection
 import com.grocemaxxer.shared.fullDateLabel
 import com.grocemaxxer.shared.shortDateLabel
 import com.grocemaxxer.shared.toDedupeKey
-import com.grocemaxxer.shared.toTitleCase
 import grocemaxxer.composeapp.generated.resources.Res
 import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_background
 import kotlinx.coroutines.CoroutineScope
@@ -342,14 +339,7 @@ internal fun MainScreen(
             catalog = catalog,
             onDismiss = { showAddSheet = false },
             onAdd = { text, section ->
-                scope.launch {
-                    repository.addItems(text, section)
-                    // Remember typed items so they're suggested next time.
-                    GroceryInputParser.parse(text).forEach { raw ->
-                        val name = raw.toTitleCase()
-                        catalog.recordCustom(name, section ?: ItemCategorizer.categorize(name))
-                    }
-                }
+                scope.launch { repository.addItems(text, section) }
                 showAddSheet = false
             },
             onQuickAdd = { name, section ->
@@ -719,7 +709,7 @@ private fun AddItemSheet(
                             color = MaterialTheme.colorScheme.surfaceVariant,
                         ) {
                             Text(
-                                text = "${sectionStyle(suggestion.section).emoji} ${suggestion.name}",
+                                text = suggestion.name,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                             )

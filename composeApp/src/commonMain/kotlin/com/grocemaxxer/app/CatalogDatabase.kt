@@ -36,6 +36,9 @@ interface CatalogDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(items: List<CatalogItemEntity>)
+
+    @Query("DELETE FROM catalog_items WHERE isCustom = 1")
+    suspend fun deleteCustomItems()
 }
 
 @Database(entities = [CatalogItemEntity::class], version = 1)
