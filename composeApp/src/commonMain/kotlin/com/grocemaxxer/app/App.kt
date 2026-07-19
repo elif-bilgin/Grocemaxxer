@@ -27,6 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -51,10 +52,13 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun App() {
     val repository = remember { GroceryRepository(groceryDataStore) }
+    val catalog = remember { CatalogRepository() }
     val scope = rememberCoroutineScope()
     val settings by repository.settings.collectAsState(initial = AppSettings())
     val items by repository.items.collectAsState(initial = emptyList())
     val storedDates by repository.storedDates.collectAsState(initial = emptyList())
+
+    LaunchedEffect(Unit) { catalog.ensureSeeded() }
 
     var showWelcome by remember { mutableStateOf(true) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -106,6 +110,7 @@ fun App() {
             } else {
                 MainScreen(
                     repository = repository,
+                    catalog = catalog,
                     scope = scope,
                     items = items,
                     settings = settings,

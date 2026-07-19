@@ -21,6 +21,13 @@ Features:
 - Duplicate items are skipped automatically (case-insensitive), names are
   Title Cased, and the add sheet lets you override the auto-detected
   category.
+- A Room 3 database of pre-saved items (~250, seeded from
+  `shared/.../PresetCatalog.kt`) powers live suggestions as you type in
+  the add sheet plus a browse-by-aisle picker; items you type yourself
+  are remembered and suggested on future trips.
+- Text-based sharing: send the list through the share sheet as a
+  readable message, paste a received one to see a diff against yours,
+  and opt in before overwriting.
 
 ## How the ordering works
 

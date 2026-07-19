@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room3)
 }
 
 kotlin {
@@ -37,6 +39,8 @@ kotlin {
             implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.okio)
+            implementation(libs.room3.runtime)
+            implementation(libs.androidx.sqlite.bundled)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -59,6 +63,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+}
+
+dependencies {
+    add("kspAndroid", libs.room3.compiler)
+    add("kspJvm", libs.room3.compiler)
+    add("kspIosX64", libs.room3.compiler)
+    add("kspIosArm64", libs.room3.compiler)
+    add("kspIosSimulatorArm64", libs.room3.compiler)
+}
+
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 compose.desktop {

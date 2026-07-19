@@ -25,7 +25,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -74,14 +76,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.grocemaxxer.shared.CatalogItem
+import com.grocemaxxer.shared.GroceryInputParser
 import com.grocemaxxer.shared.GroceryItem
 import com.grocemaxxer.shared.GroceryListOrganizer
+import com.grocemaxxer.shared.ItemCategorizer
 import com.grocemaxxer.shared.SectionGroup
 import com.grocemaxxer.shared.ShareTextCodec
 import com.grocemaxxer.shared.Store
 import com.grocemaxxer.shared.StoreSection
 import com.grocemaxxer.shared.fullDateLabel
 import com.grocemaxxer.shared.shortDateLabel
+import com.grocemaxxer.shared.toDedupeKey
+import com.grocemaxxer.shared.toTitleCase
 import grocemaxxer.composeapp.generated.resources.Res
 import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_background
 import kotlinx.coroutines.CoroutineScope
@@ -91,6 +98,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 internal fun MainScreen(
     repository: GroceryRepository,
+    catalog: CatalogRepository,
     scope: CoroutineScope,
     items: List<GroceryItem>,
     settings: AppSettings,
@@ -327,10 +335,22 @@ internal fun MainScreen(
 
     if (showAddSheet) {
         AddItemSheet(
+            currentItems = items,
+            catalog = catalog,
             onDismiss = { showAddSheet = false },
             onAdd = { text, section ->
-                scope.launch { repository.addItems(text, section) }
+                scope.launch {
+                    repository.addItems(text, section)
+                    // Remember typed items so they're suggested next time.
+                    GroceryInputParser.parse(text).forEach { raw ->
+                        val name = raw.toTitleCase()
+                        catalog.recordCustom(name, section ?: ItemCategorizer.categorize(name))
+                    }
+                }
                 showAddSheet = false
+            },
+            onQuickAdd = { name, section ->
+                scope.launch { repository.addItems(name, section) }
             },
         )
     }
@@ -624,22 +644,46 @@ private fun CompletionOverlay(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun AddItemSheet(
+    currentItems: List<GroceryItem>,
+    catalog: CatalogRepository,
     onDismiss: () -> Unit,
     onAdd: (String, StoreSection?) -> Unit,
+    onQuickAdd: (String, StoreSection) -> Unit,
 ) {
     var itemText by remember { mutableStateOf("") }
     var selectedSection by remember { mutableStateOf<StoreSection?>(null) }
     var dropdownExpanded by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
+    var browseSection by remember { mutableStateOf<StoreSection?>(null) }
+    var browseItems by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
+
+    LaunchedEffect(itemText, currentItems) {
+        suggestions = catalog.suggestions(itemText, currentItems.map { it.name })
+    }
+    LaunchedEffect(browseSection, currentItems) {
+        val section = browseSection
+        browseItems = if (section == null) {
+            emptyList()
+        } else {
+            catalog.itemsFor(section).filter { preset ->
+                currentItems.none { it.name.toDedupeKey() == preset.name.toDedupeKey() }
+            }
+        }
+    }
 
     fun submit() {
         if (itemText.isNotBlank()) onAdd(itemText, selectedSection)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 40.dp)) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(start = 24.dp, end = 24.dp, bottom = 40.dp),
+        ) {
             Text(
                 text = "Add New Item",
                 style = MaterialTheme.typography.titleLarge,
@@ -656,6 +700,30 @@ private fun AddItemSheet(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
             )
+            if (suggestions.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    suggestions.forEach { suggestion ->
+                        Surface(
+                            onClick = {
+                                onQuickAdd(suggestion.name, suggestion.section)
+                                itemText = ""
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                        ) {
+                            Text(
+                                text = "${sectionStyle(suggestion.section).emoji} ${suggestion.name}",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(12.dp))
             ExposedDropdownMenuBox(
                 expanded = dropdownExpanded,
@@ -713,6 +781,69 @@ private fun AddItemSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
+
+            Spacer(Modifier.height(20.dp))
+            Text("Or browse saved items", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(
+                    StoreSection.entries.filter { it != StoreSection.OTHER },
+                    key = { it.name },
+                ) { section ->
+                    val isSelected = section == browseSection
+                    Surface(
+                        onClick = { browseSection = if (isSelected) null else section },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) {
+                            sectionStyle(section).lightContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        border = if (isSelected) {
+                            BorderStroke(1.5.dp, sectionStyle(section).accent)
+                        } else {
+                            null
+                        },
+                    ) {
+                        Text(
+                            text = "${sectionStyle(section).emoji} ${section.displayName}",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
+            if (browseSection != null) {
+                Spacer(Modifier.height(10.dp))
+                if (browseItems.isEmpty()) {
+                    Text(
+                        text = "Everything from this aisle is already on your list!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        browseItems.forEach { preset ->
+                            Surface(
+                                onClick = { onQuickAdd(preset.name, preset.section) },
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                            ) {
+                                Text(
+                                    text = "+ ${preset.name}",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
