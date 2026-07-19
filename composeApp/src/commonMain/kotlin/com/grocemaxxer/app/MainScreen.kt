@@ -47,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -206,6 +207,21 @@ internal fun MainScreen(
                     },
                     shape = RoundedCornerShape(24.dp),
                     singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                    ),
                 )
                 Spacer(Modifier.height(10.dp))
 
