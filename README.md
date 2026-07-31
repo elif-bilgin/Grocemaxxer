@@ -50,33 +50,6 @@ salesman solve over item pairs -- extend `SectionKeywords.kt` with more
 keywords/sections, or swap `ItemCategorizer` for a real store's planogram
 data, to make it more accurate for a specific store.
 
-## Google Sign-In setup
-
-The welcome screen offers Log In / Sign Up with Google (via Android's
-Credential Manager). It stays in a friendly "couldn't sign in" state until
-an OAuth client ID is configured -- one-time setup, needs your Google
-account:
-
-1. Go to https://console.cloud.google.com/ -> create (or pick) a project.
-2. APIs & Services -> OAuth consent screen: configure an External consent
-   screen (app name "grocemaxxer", your email; no scopes beyond the basics
-   needed).
-3. APIs & Services -> Credentials -> Create Credentials -> OAuth client ID:
-   - Create one of type **Android**: package name `com.grocemaxxer.android`,
-     SHA-1 from `./gradlew signingReport` (the `debug` variant's SHA1).
-   - Create one of type **Web application** (no redirect URIs needed).
-4. Copy the **Web application** client ID (ends in
-   `.apps.googleusercontent.com`) into `GOOGLE_WEB_CLIENT_ID` in
-   `composeApp/src/androidMain/kotlin/com/grocemaxxer/app/Auth.android.kt`.
-5. Rebuild. Sign-in state persists across app launches until you log out
-   (Settings -> Account -> Log Out).
-
-"Continue without an account" keeps the whole app usable without any of
-this. Desktop/iOS sign-in is stubbed out (returns not-supported).
-Account-to-account list sync additionally needs a backend (see the
-Firestore plan in the project discussions); this provides the identity
-layer for it.
-
 ## Branding
 
 - Wordmark (start screen + main header): `composeApp/src/commonMain/composeResources/drawable/grocemaxxer_title_no_background.png`
@@ -149,37 +122,10 @@ are provided by `expect fun groceryDataStorePath()`:
 The item list itself is encoded into a single preferences value by
 `GroceryListCodec` in `shared` (unit-tested round-trip codec).
 
-## Verification notes (sandbox limitations)
+## Development notes
 
-This project was built in a network-restricted sandbox where Google's Maven
-repository (`dl.google.com`) and JetBrains' download host are blocked by the
-outbound proxy, but Maven Central and the Gradle Plugin Portal are reachable.
-That constrained what could actually be *run* here:
-
-- The `shared` tests -- ran successfully, all tests pass (this is where the
-  real logic lives and where two real bugs were caught and fixed: an
-  unmatched "eggplant" keyword, and plural phrases like "tortilla chips"
-  losing to a shorter single-word match). After the Android target was
-  wired in, the sandbox could no longer even configure the root project
-  (AGP resolves from Google's Maven), so later runs used a standalone JVM
-  harness compiling `shared`'s sources directly.
-- `composeApp` originally compiled cleanly for the JVM in the sandbox;
-  after `androidx.datastore` was added (also hosted on Google's Maven), the
-  UI module could no longer be compiled there and is verified by building
-  on a normal dev machine instead.
-- `./gradlew :composeApp:run` (Desktop) -- could **not** be executed here:
-  Compose Multiplatform's UI runtime pulls in `androidx.lifecycle:lifecycle-viewmodel`
-  from `dl.google.com` at run time, which this sandbox blocks. It should run
-  normally in an environment with unrestricted network access.
-- The Android target (`androidTarget()` in `shared`/`composeApp`, plus the
-  `androidApp` module) is wired into the build but was configured without
-  being able to run a single Android Gradle task here -- `dl.google.com` is
-  unreachable, so the Android Gradle Plugin itself can't even resolve. It
-  follows the standard Kotlin Multiplatform + Compose Multiplatform template
-  structure; it should sync and build normally in Android Studio.
-- iOS compilation was not attempted here (no macOS/Xcode in this
-  environment) -- see the build instructions above for what's needed.
-
-If you hit issues running `./gradlew :composeApp:run` or building for
-Android/iOS outside this sandbox, it's most likely a normal Gradle/SDK setup
-issue rather than something introduced by these constraints.
+The business logic (categorization, store orderings, the share/merge codec,
+date handling) lives in `shared` with no UI or platform dependencies, and is
+covered by unit tests -- `./gradlew :shared:jvmTest` is the fastest way to
+check a change. The app stores everything on-device and requires no network
+access or account.

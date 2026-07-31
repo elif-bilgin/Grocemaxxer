@@ -44,8 +44,6 @@ class GroceryRepository(private val dataStore: DataStore<Preferences>) {
     private val paletteKey = stringPreferencesKey("theme_palette")
     private val darkModeKey = booleanPreferencesKey("dark_mode")
     private val storeKey = stringPreferencesKey("default_store")
-    private val accountEmailKey = stringPreferencesKey("account_email")
-    private val accountNameKey = stringPreferencesKey("account_name")
 
     private fun itemsKey(isoDate: String) = stringPreferencesKey("items@$isoDate")
 
@@ -68,27 +66,6 @@ class GroceryRepository(private val dataStore: DataStore<Preferences>) {
     /** ISO dates that have a stored list, newest first. */
     val storedDates: Flow<List<String>> = safeData.map { prefs ->
         parseDates(prefs[datesKey]).sortedDescending()
-    }
-
-    /** Signed-in account, persisted across sessions until explicit logout. */
-    val account: Flow<UserAccount?> = safeData.map { prefs ->
-        prefs[accountEmailKey]?.let { email ->
-            UserAccount(email = email, displayName = prefs[accountNameKey] ?: email)
-        }
-    }
-
-    suspend fun setAccount(userAccount: UserAccount) {
-        dataStore.edit { prefs ->
-            prefs[accountEmailKey] = userAccount.email
-            prefs[accountNameKey] = userAccount.displayName
-        }
-    }
-
-    suspend fun clearAccount() {
-        dataStore.edit { prefs ->
-            prefs.remove(accountEmailKey)
-            prefs.remove(accountNameKey)
-        }
     }
 
     /** One-shot read of the list saved under [isoDate]. */

@@ -10,16 +10,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         GrocemaxxerAndroidContext.appContext = applicationContext
-        GrocemaxxerAndroidContext.currentActivity = this
         setContent {
             App()
         }
-    }
-
-    override fun onDestroy() {
-        if (GrocemaxxerAndroidContext.currentActivity === this) {
-            GrocemaxxerAndroidContext.currentActivity = null
-        }
-        super.onDestroy()
     }
 }

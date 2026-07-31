@@ -99,9 +99,7 @@ internal fun MainScreen(
     scope: CoroutineScope,
     items: List<GroceryItem>,
     settings: AppSettings,
-    account: UserAccount?,
     onOpenImport: () -> Unit,
-    onLoggedOut: () -> Unit,
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var showAddSheet by remember { mutableStateOf(false) }
@@ -347,18 +345,9 @@ internal fun MainScreen(
     if (showSettingsSheet) {
         SettingsSheet(
             settings = settings,
-            account = account,
             onDismiss = { showSettingsSheet = false },
             onPaletteSelected = { scope.launch { repository.setPalette(it) } },
             onDarkModeChanged = { scope.launch { repository.setDarkMode(it) } },
-            onLogOut = {
-                showSettingsSheet = false
-                scope.launch {
-                    repository.clearAccount()
-                    platformSignOutGoogle()
-                }
-                onLoggedOut()
-            },
         )
     }
 }
@@ -842,11 +831,9 @@ private fun AddItemSheet(
 @Composable
 private fun SettingsSheet(
     settings: AppSettings,
-    account: UserAccount?,
     onDismiss: () -> Unit,
     onPaletteSelected: (ThemePalette) -> Unit,
     onDarkModeChanged: (Boolean) -> Unit,
-    onLogOut: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 40.dp)) {
@@ -893,34 +880,6 @@ private fun SettingsSheet(
                 Switch(
                     checked = settings.darkMode,
                     onCheckedChange = onDarkModeChanged,
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-            Text("Account", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(6.dp))
-            if (account != null) {
-                Text(
-                    text = "Signed in as ${account.displayName} (${account.email})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onLogOut,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                ) {
-                    Text("Log Out", fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Text(
-                    text = "Not signed in — log in from the welcome screen to enable account features.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(12.dp))

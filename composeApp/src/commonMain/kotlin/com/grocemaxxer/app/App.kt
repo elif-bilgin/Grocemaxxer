@@ -59,16 +59,12 @@ fun App() {
     val settings by repository.settings.collectAsState(initial = AppSettings())
     val items by repository.items.collectAsState(initial = emptyList())
     val storedDates by repository.storedDates.collectAsState(initial = emptyList())
-    val account by repository.account.collectAsState(initial = null)
 
     LaunchedEffect(Unit) { catalog.ensureSeeded() }
 
     var screen by remember { mutableStateOf(AppScreen.Welcome) }
     var showDatePicker by remember { mutableStateOf(false) }
     var pendingAdoptDate by remember { mutableStateOf<String?>(null) }
-    var guestMode by remember { mutableStateOf(false) }
-    var authBusy by remember { mutableStateOf(false) }
-    var authError by remember { mutableStateOf(false) }
 
     fun adoptOrAsk(isoDate: String) {
         scope.launch {
@@ -97,25 +93,7 @@ fun App() {
         ) {
             when (screen) {
                 AppScreen.Welcome -> WelcomeScreen(
-                    account = account,
-                    guestMode = guestMode,
                     hasStoredLists = storedDates.isNotEmpty(),
-                    authBusy = authBusy,
-                    authError = authError,
-                    onSignIn = {
-                        scope.launch {
-                            authBusy = true
-                            authError = false
-                            val signedIn = platformSignInWithGoogle()
-                            if (signedIn != null) {
-                                repository.setAccount(signedIn)
-                            } else {
-                                authError = true
-                            }
-                            authBusy = false
-                        }
-                    },
-                    onContinueAsGuest = { guestMode = true },
                     onUsePrevious = {
                         val latest = storedDates.firstOrNull()
                         if (latest == null) {
@@ -141,12 +119,7 @@ fun App() {
                     scope = scope,
                     items = items,
                     settings = settings,
-                    account = account,
                     onOpenImport = { screen = AppScreen.Import },
-                    onLoggedOut = {
-                        guestMode = false
-                        screen = AppScreen.Welcome
-                    },
                 )
                 AppScreen.Import -> ImportScreen(
                     items = items,
@@ -209,13 +182,7 @@ fun App() {
 
 @Composable
 private fun WelcomeScreen(
-    account: UserAccount?,
-    guestMode: Boolean,
     hasStoredLists: Boolean,
-    authBusy: Boolean,
-    authError: Boolean,
-    onSignIn: () -> Unit,
-    onContinueAsGuest: () -> Unit,
     onUsePrevious: () -> Unit,
     onStartNew: () -> Unit,
     onPickFromDate: () -> Unit,
@@ -248,88 +215,34 @@ private fun WelcomeScreen(
         )
         Spacer(Modifier.height(40.dp))
 
-        if (account == null && !guestMode) {
-            Button(
-                onClick = onSignIn,
-                enabled = !authBusy,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-                contentPadding = PaddingValues(vertical = 14.dp),
-            ) {
-                Text(
-                    text = if (authBusy) "SIGNING IN…" else "LOG IN WITH GOOGLE",
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.2.sp,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onSignIn,
-                enabled = !authBusy,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(vertical = 14.dp),
-            ) {
-                Text("SIGN UP WITH GOOGLE", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-            }
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = onContinueAsGuest, enabled = !authBusy) {
-                Text("Continue without an account")
-            }
-            if (authError) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Couldn't sign in. If this keeps happening, Google Sign-In may " +
-                        "not be configured yet (see README) — you can continue without " +
-                        "an account in the meantime.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else {
-            if (account != null) {
-                Text(
-                    text = "Signed in as ${account.displayName}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(16.dp))
-            }
-            Button(
-                onClick = onUsePrevious,
-                enabled = hasStoredLists,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-                contentPadding = PaddingValues(vertical = 14.dp),
-            ) {
-                Text("USE PREVIOUS LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-            }
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onStartNew,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(vertical = 14.dp),
-            ) {
-                Text("START NEW LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-            }
-            Spacer(Modifier.height(12.dp))
-            TextButton(
-                onClick = onPickFromDate,
-                enabled = hasStoredLists,
-            ) {
-                Text("Use list from a date…")
-            }
+        Button(
+            onClick = onUsePrevious,
+            enabled = hasStoredLists,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
+            contentPadding = PaddingValues(vertical = 14.dp),
+        ) {
+            Text("USE PREVIOUS LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onStartNew,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            contentPadding = PaddingValues(vertical = 14.dp),
+        ) {
+            Text("START NEW LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        TextButton(
+            onClick = onPickFromDate,
+            enabled = hasStoredLists,
+        ) {
+            Text("Use list from a date…")
         }
         Spacer(Modifier.height(28.dp))
     }
