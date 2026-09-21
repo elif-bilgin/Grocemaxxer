@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FDF3E7</color>
+    <!-- Matches ThemePalette.MINT.backgroundLight, the default light background. -->
+    <color name="launch_background">#F6FBF4</color>
 </resources>

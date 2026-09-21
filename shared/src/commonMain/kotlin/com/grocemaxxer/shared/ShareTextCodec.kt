@@ -6,7 +6,7 @@ package com.grocemaxxer.shared
  * other end:
  *
  * ```
- * 🧺 grocemaxxer list · Sat, Jul 18
+ * 🧺 GroceMaxxer list · Sat, Jul 18
  * == Produce ==
  * [ ] Apples
  * [x] Bananas
@@ -16,6 +16,8 @@ package com.grocemaxxer.shared
  */
 object ShareTextCodec {
 
+    // Matched against a lower-cased copy of the message, so this stays
+    // lower case and lists shared by any version of the app still parse.
     private const val HEADER_MARKER = "grocemaxxer list"
     private val sectionHeaderRegex = Regex("^==\\s*(.+?)\\s*==$")
     private val itemLineRegex = Regex("^\\[( |x|X)\\]\\s*(.+)$")
@@ -25,7 +27,7 @@ object ShareTextCodec {
     fun encode(items: List<GroceryItem>, dateLabel: String): String {
         val groups = GroceryListOrganizer.organize(items)
         return buildString {
-            append("🧺 grocemaxxer list · ").append(dateLabel)
+            append("🧺 GroceMaxxer list · ").append(dateLabel)
             for (group in groups) {
                 append("\n== ").append(group.section.displayName).append(" ==")
                 for (item in group.items) {
@@ -39,7 +41,7 @@ object ShareTextCodec {
 
     /**
      * Parses a shared message back into items, or returns null if [text]
-     * isn't a grocemaxxer list at all. Unknown/missing section headers fall
+     * isn't a GroceMaxxer list at all. Unknown/missing section headers fall
      * back to keyword categorization, so hand-edited messages still import.
      */
     fun parse(text: String): List<GroceryItem>? {

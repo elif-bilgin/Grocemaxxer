@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup and device-to-device transfer rules (API 31+). Same reasoning as
+  backup_rules.xml: carry the lists and settings, re-seed the catalog.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="grocemaxxer.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="grocemaxxer.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>

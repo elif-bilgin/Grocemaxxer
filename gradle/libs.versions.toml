@@ -2,9 +2,9 @@
 kotlin = "2.0.21"
 compose-multiplatform = "1.7.1"
 agp = "8.10.1"
-android-compileSdk = "34"
+android-compileSdk = "36"
 android-minSdk = "26"
-android-targetSdk = "34"
+android-targetSdk = "36"
 datastore = "1.1.1"
 coroutines = "1.8.1"
 okio = "3.9.0"
@@ -16,6 +16,7 @@ ksp = "2.0.21-1.0.28"
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.9.2" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.13.1" }
 androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }

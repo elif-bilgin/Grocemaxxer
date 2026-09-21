@@ -18,7 +18,7 @@ fun BasketLogo(
 ) {
     Image(
         painter = painterResource(Res.drawable.grocemaxxer_logo),
-        contentDescription = "grocemaxxer logo",
+        contentDescription = "GroceMaxxer logo",
         modifier = modifier.size(size),
         contentScale = ContentScale.Fit
     )

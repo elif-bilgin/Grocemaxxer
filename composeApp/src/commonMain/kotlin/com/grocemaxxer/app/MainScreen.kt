@@ -173,7 +173,7 @@ internal fun MainScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Image(
                             painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
-                            contentDescription = "grocemaxxer",
+                            contentDescription = "GroceMaxxer",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),

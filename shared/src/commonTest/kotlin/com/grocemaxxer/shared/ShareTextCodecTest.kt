@@ -39,7 +39,7 @@ class ShareTextCodecTest {
     fun encodedTextIsHumanReadable() {
         val text = ShareTextCodec.encode(listOf(item("Apples"), item("Milk", checked = true)), "Sat, Jul 18")
 
-        assertTrue(text.startsWith("🧺 grocemaxxer list · Sat, Jul 18"))
+        assertTrue(text.startsWith("🧺 GroceMaxxer list · Sat, Jul 18"))
         assertTrue(text.contains("== Produce =="))
         assertTrue(text.contains("[ ] Apples"))
         assertTrue(text.contains("[x] Milk"))

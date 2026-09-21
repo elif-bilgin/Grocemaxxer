@@ -5,8 +5,9 @@ data class CatalogItem(val name: String, val section: StoreSection)
 
 /**
  * Curated catalog of common grocery items, categorized by section. Seeds
- * the on-device Room database on first launch; the database then grows as
- * the user adds their own items.
+ * the on-device Room database on first launch. It is deliberately static --
+ * items the user types are not added to it, so a one-off typo never becomes
+ * a recurring suggestion.
  */
 object PresetCatalog {
 

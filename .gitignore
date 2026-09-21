@@ -11,3 +11,8 @@ local.properties
 xcuserdata/
 DerivedData/
 *.xcworkspace
+
+# Release signing material -- never commit these
+keystore.properties
+*.jks
+*.keystore

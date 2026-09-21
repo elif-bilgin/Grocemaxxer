@@ -9,7 +9,7 @@ import androidx.compose.ui.window.application
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "grocemaxxer",
+        title = "GroceMaxxer",
         state = WindowState(size = DpSize(430.dp, 860.dp)),
     ) {
         App()

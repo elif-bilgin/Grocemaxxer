@@ -56,10 +56,20 @@ expect object CatalogDatabaseConstructor : RoomDatabaseConstructor<CatalogDataba
 /** Platform-specific builder pointing at the app's catalog.db location. */
 expect fun catalogDatabaseBuilder(): RoomDatabase.Builder<CatalogDatabase>
 
-/** Process-wide singleton catalog database. */
+/**
+ * Process-wide singleton catalog database.
+ *
+ * The catalog holds no user data -- every row is derived from
+ * [com.grocemaxxer.shared.PresetCatalog] and re-seeded by
+ * `CatalogRepository.ensureSeeded()` on launch -- so a schema change is
+ * resolved by dropping and rebuilding rather than by a migration. Without
+ * this, the first schema change after release would crash on upgrade for
+ * everyone who already has the app installed.
+ */
 val catalogDatabase: CatalogDatabase by lazy {
     catalogDatabaseBuilder()
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.Default)
+        .fallbackToDestructiveMigration(dropAllTables = true)
         .build()
 }

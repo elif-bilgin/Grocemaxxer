@@ -1,4 +1,4 @@
-# Grocemaxxer
+# GroceMaxxer
 
 A Kotlin Multiplatform grocery checklist app. You type in what you want to
 buy; it groups the items by which part of the store they're likely to be
@@ -84,7 +84,9 @@ Compose Multiplatform iOS integration -- see
 https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-ios.html)
 
 ### Android
-Needs the Android SDK (Android Studio is the easiest way to get it).
+Needs the Android SDK (Android Studio is the easiest way to get it). The app
+targets API 36 and compiles against API 36, so the SDK platform for Android 16
+has to be installed -- Android Studio offers to fetch it on first sync.
 
 1. Open the project root in Android Studio and let it sync (first sync
    downloads the SDK platform/build-tools if needed).
@@ -109,6 +111,17 @@ adb shell am start -n com.grocemaxxer.android/.MainActivity
 Runs the categorizer/organizer/codec unit tests on the JVM (the fastest
 common target to test against).
 
+### Release builds
+```
+./gradlew :androidApp:bundleRelease
+```
+Produces the Play upload bundle. Release builds are minified with R8 and
+signed with the upload key configured in `keystore.properties` (gitignored) or
+the `GROCEMAXXER_*` environment variables; without either they assemble
+unsigned. Because R8 problems only surface at runtime, install a release build
+and exercise it before uploading -- `docs/play-store-release.md` has the full
+checklist, along with the Play Console answers and the store listing copy.
+
 ## Persistence
 
 The list and settings (theme color, dark mode) are stored with
@@ -122,10 +135,23 @@ are provided by `expect fun groceryDataStorePath()`:
 The item list itself is encoded into a single preferences value by
 `GroceryListCodec` in `shared` (unit-tested round-trip codec).
 
+The preset catalog lives in a separate Room database. It holds no user data --
+every row is re-seeded from `PresetCatalog` on launch -- so the builder uses
+`fallbackToDestructiveMigration`: a schema change rebuilds the table instead of
+needing a migration, and can never crash an upgrade. Android's backup rules
+(`androidApp/src/main/res/xml/`) follow the same split: the preferences file is
+backed up and transferred between devices, the catalog database is not.
+
 ## Development notes
 
 The business logic (categorization, store orderings, the share/merge codec,
 date handling) lives in `shared` with no UI or platform dependencies, and is
 covered by unit tests -- `./gradlew :shared:jvmTest` is the fastest way to
 check a change. The app stores everything on-device and requires no network
-access or account.
+access or account; `PRIVACY.md` is the user-facing statement of that.
+
+The Android activity draws edge-to-edge (mandatory from API 35). Insets are
+applied exactly once, by the `Box` at the top of `App()`, which consumes them
+so the `Scaffold` inside `MainScreen` does not add them again. Anything new
+that needs its own insets should sit outside that `Box`, not add padding of
+its own.

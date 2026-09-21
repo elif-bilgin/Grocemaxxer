@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup (API 30 and below). Only the preferences file is backed up: it
+  holds the lists and settings. The catalog database is excluded on purpose --
+  it is re-seeded from PresetCatalog on first launch, so backing it up would
+  only risk restoring a stale schema onto a newer app version.
+-->
+<full-backup-content>
+    <include domain="file" path="grocemaxxer.preferences_pb" />
+</full-backup-content>

@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -87,48 +90,57 @@ fun App() {
     }
 
     GrocemaxxerTheme(settings.palette, settings.darkMode) {
+        SystemBarAppearance(settings.darkMode)
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            when (screen) {
-                AppScreen.Welcome -> WelcomeScreen(
-                    hasStoredLists = storedDates.isNotEmpty(),
-                    onUsePrevious = {
-                        val latest = storedDates.firstOrNull()
-                        if (latest == null) {
+            // The activity draws edge-to-edge, so the background colour fills
+            // the whole screen while content is inset once, here. The padding
+            // consumes the insets, so the nested Scaffold in MainScreen (and
+            // anything else reading WindowInsets below this point) does not
+            // add them a second time. safeDrawing also covers the keyboard,
+            // which edge-to-edge windows no longer get from adjustResize.
+            Box(modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+                when (screen) {
+                    AppScreen.Welcome -> WelcomeScreen(
+                        hasStoredLists = storedDates.isNotEmpty(),
+                        onUsePrevious = {
+                            val latest = storedDates.firstOrNull()
+                            if (latest == null) {
+                                scope.launch {
+                                    repository.startNewList()
+                                    screen = AppScreen.Main
+                                }
+                            } else {
+                                adoptOrAsk(latest)
+                            }
+                        },
+                        onStartNew = {
                             scope.launch {
                                 repository.startNewList()
                                 screen = AppScreen.Main
                             }
-                        } else {
-                            adoptOrAsk(latest)
-                        }
-                    },
-                    onStartNew = {
-                        scope.launch {
-                            repository.startNewList()
+                        },
+                        onPickFromDate = { showDatePicker = true },
+                    )
+                    AppScreen.Main -> MainScreen(
+                        repository = repository,
+                        catalog = catalog,
+                        scope = scope,
+                        items = items,
+                        settings = settings,
+                        onOpenImport = { screen = AppScreen.Import },
+                    )
+                    AppScreen.Import -> ImportScreen(
+                        items = items,
+                        onBack = { screen = AppScreen.Main },
+                        onApply = { received ->
+                            scope.launch { repository.replaceTodayList(received) }
                             screen = AppScreen.Main
-                        }
-                    },
-                    onPickFromDate = { showDatePicker = true },
-                )
-                AppScreen.Main -> MainScreen(
-                    repository = repository,
-                    catalog = catalog,
-                    scope = scope,
-                    items = items,
-                    settings = settings,
-                    onOpenImport = { screen = AppScreen.Import },
-                )
-                AppScreen.Import -> ImportScreen(
-                    items = items,
-                    onBack = { screen = AppScreen.Main },
-                    onApply = { received ->
-                        scope.launch { repository.replaceTodayList(received) }
-                        screen = AppScreen.Main
-                    },
-                )
+                        },
+                    )
+                }
             }
         }
     }
@@ -200,7 +212,7 @@ private fun WelcomeScreen(
         Spacer(Modifier.height(28.dp))
         Image(
             painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
-            contentDescription = "grocemaxxer",
+            contentDescription = "GroceMaxxer",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),

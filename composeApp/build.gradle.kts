@@ -88,7 +88,7 @@ compose.desktop {
         mainClass = "com.grocemaxxer.app.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "Grocemaxxer"
+            packageName = "GroceMaxxer"
             packageVersion = "1.0.0"
         }
     }

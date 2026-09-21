@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Launch theme. The window background matches the Compose light-mode
+      background so there's no white flash before the first frame, and the
+      system bars are transparent because the activity draws edge-to-edge
+      (enableEdgeToEdge in MainActivity). Bar icon contrast is set at runtime
+      from the user's in-app dark-mode setting, which can differ from the
+      system one; the values here are just the first-frame defaults.
+    -->
+    <style name="Theme.GroceMaxxer" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/launch_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
