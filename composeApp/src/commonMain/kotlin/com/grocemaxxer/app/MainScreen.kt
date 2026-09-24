@@ -36,17 +36,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -113,6 +114,7 @@ internal fun MainScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showAddSheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var overflowExpanded by remember { mutableStateOf(false) }
     var archiveExpanded by remember { mutableStateOf(false) }
     var showCompletion by remember { mutableStateOf(false) }
 
@@ -156,16 +158,6 @@ internal fun MainScreen(
         Scaffold(
             modifier = Modifier.blur(blurRadius),
             containerColor = Color.Transparent,
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { showAddSheet = true },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape = RoundedCornerShape(20.dp),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add item")
-                }
-            },
         ) { innerPadding ->
             Column(
                 modifier = Modifier
@@ -212,12 +204,39 @@ internal fun MainScreen(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
-                    IconButton(onClick = { showSettingsSheet = true }) {
+                    IconButton(onClick = { showAddSheet = true }) {
                         Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Settings",
+                            Icons.Default.Add,
+                            contentDescription = "Add item",
                             tint = MaterialTheme.colorScheme.primary,
                         )
+                    }
+                    // Settings moved out of the header to make room for Add.
+                    // It is the rarely-used action of the two, so it goes to
+                    // the overflow rather than disappearing.
+                    Box {
+                        IconButton(onClick = { overflowExpanded = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = overflowExpanded,
+                            onDismissRequest = { overflowExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Settings, contentDescription = null)
+                                },
+                                onClick = {
+                                    overflowExpanded = false
+                                    showSettingsSheet = true
+                                },
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -286,7 +305,7 @@ internal fun MainScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(top = 4.dp, bottom = 96.dp),
+                        contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
                     ) {
                         items(activeGroups, key = { it.section.name }) { group ->
                             SectionCard(
@@ -416,7 +435,7 @@ private fun StoreSelectorRow(
 @Composable
 private fun EmptyListPlaceholder() {
     Column(
-        modifier = Modifier.fillMaxSize().padding(bottom = 48.dp),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
