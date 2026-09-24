@@ -1,6 +1,21 @@
 package com.grocemaxxer.app
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,18 +56,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.grocemaxxer.shared.GroceryItem
 import com.grocemaxxer.shared.pickerDateLabel
 import grocemaxxer.composeapp.generated.resources.Res
 import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_background
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
-private enum class AppScreen { Welcome, Main, Import }
+/**
+ * Top-level destinations. [Loading] is the brief moment before the stored
+ * lists have been read and the startup destination is known; declaration
+ * order doubles as navigation depth, which drives the slide direction of the
+ * screen transition.
+ */
+private enum class AppScreen { Loading, Welcome, Main, Import }
+
+private const val SCREEN_TRANSITION_MS = 320
 
 @Composable
 fun App() {
@@ -61,13 +86,47 @@ fun App() {
     val scope = rememberCoroutineScope()
     val settings by repository.settings.collectAsState(initial = AppSettings())
     val items by repository.items.collectAsState(initial = emptyList())
-    val storedDates by repository.storedDates.collectAsState(initial = emptyList())
+    // null until the first read lands, so startup can tell "no lists yet"
+    // apart from "not loaded yet" and not flash the welcome screen.
+    val storedDates by repository.storedDates.collectAsState(initial = null)
 
     LaunchedEffect(Unit) { catalog.ensureSeeded() }
 
-    var screen by remember { mutableStateOf(AppScreen.Welcome) }
+    var screen by remember { mutableStateOf(AppScreen.Loading) }
     var showDatePicker by remember { mutableStateOf(false) }
     var pendingAdoptDate by remember { mutableStateOf<String?>(null) }
+
+    // When the newest stored list predates today, the app opens straight onto
+    // it -- blurred, behind the welcome buttons -- so you can see what you are
+    // being asked about before choosing. Null once a choice has been made.
+    var resumeDate by remember { mutableStateOf<String?>(null) }
+    var resumePreview by remember { mutableStateOf<List<GroceryItem>>(emptyList()) }
+
+    fun finishStartup() {
+        resumeDate = null
+        resumePreview = emptyList()
+        screen = AppScreen.Main
+    }
+
+    // Startup routing, run once the stored dates are known: go straight to the
+    // most recent list rather than to a menu, and only fall back to the
+    // welcome screen when there is genuinely nothing to open.
+    var startupRouted by remember { mutableStateOf(false) }
+    LaunchedEffect(storedDates) {
+        val dates = storedDates ?: return@LaunchedEffect
+        if (startupRouted) return@LaunchedEffect
+        startupRouted = true
+        val latest = dates.firstOrNull()
+        when {
+            latest == null -> screen = AppScreen.Welcome
+            latest == repository.todayIso -> screen = AppScreen.Main
+            else -> {
+                resumePreview = repository.peekList(latest)
+                resumeDate = latest
+                screen = AppScreen.Main
+            }
+        }
+    }
 
     fun adoptOrAsk(isoDate: String) {
         scope.launch {
@@ -76,18 +135,34 @@ fun App() {
                 pendingAdoptDate = isoDate
             } else {
                 repository.adoptList(isoDate, clearChecked = false)
-                screen = AppScreen.Main
+                finishStartup()
             }
         }
     }
 
-    // Back gesture: Import -> Main -> Welcome -> exit app.
-    PlatformBackHandler(enabled = screen != AppScreen.Welcome) {
+    fun startFresh() {
+        scope.launch {
+            repository.startNewList()
+            finishStartup()
+        }
+    }
+
+    // Back: Import -> Main -> Welcome -> exit. Disabled while the resume
+    // prompt is up, because dismissing it would leave a list on screen that
+    // has not been adopted; backing out of the app is the honest outcome.
+    PlatformBackHandler(enabled = screen == AppScreen.Import || (screen == AppScreen.Main && resumeDate == null)) {
         screen = when (screen) {
             AppScreen.Import -> AppScreen.Main
             else -> AppScreen.Welcome
         }
     }
+
+    val resuming = resumeDate != null
+    val previewBlur by animateDpAsState(
+        targetValue = if (resuming) 14.dp else 0.dp,
+        animationSpec = tween(SCREEN_TRANSITION_MS),
+        label = "resumeBlur",
+    )
 
     GrocemaxxerTheme(settings.palette, settings.darkMode) {
         SystemBarAppearance(settings.darkMode)
@@ -102,108 +177,170 @@ fun App() {
             // add them a second time. safeDrawing also covers the keyboard,
             // which edge-to-edge windows no longer get from adjustResize.
             Box(modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
-                when (screen) {
-                    AppScreen.Welcome -> WelcomeScreen(
-                        hasStoredLists = storedDates.isNotEmpty(),
-                        onUsePrevious = {
-                            val latest = storedDates.firstOrNull()
-                            if (latest == null) {
-                                scope.launch {
-                                    repository.startNewList()
-                                    screen = AppScreen.Main
-                                }
-                            } else {
-                                adoptOrAsk(latest)
-                            }
-                        },
-                        onStartNew = {
-                            scope.launch {
-                                repository.startNewList()
+                AnimatedContent(
+                    targetState = screen,
+                    transitionSpec = {
+                        // Fade the first screen in; slide afterwards, in the
+                        // direction of travel through the destinations.
+                        val transform = if (initialState == AppScreen.Loading) {
+                            fadeIn(tween(SCREEN_TRANSITION_MS)) togetherWith
+                                fadeOut(tween(SCREEN_TRANSITION_MS))
+                        } else {
+                            val direction =
+                                if (targetState.ordinal > initialState.ordinal) 1 else -1
+                            (
+                                slideInHorizontally(tween(SCREEN_TRANSITION_MS)) { width ->
+                                    direction * width / 3
+                                } + fadeIn(tween(SCREEN_TRANSITION_MS))
+                                ) togetherWith (
+                                slideOutHorizontally(tween(SCREEN_TRANSITION_MS)) { width ->
+                                    -direction * width / 3
+                                } + fadeOut(tween(SCREEN_TRANSITION_MS / 2))
+                                )
+                        }
+                        transform.using(SizeTransform(clip = false))
+                    },
+                    label = "screen",
+                ) { current ->
+                    when (current) {
+                        AppScreen.Loading -> Box(modifier = Modifier.fillMaxSize())
+                        AppScreen.Welcome -> WelcomeContent(
+                            hasStoredLists = !storedDates.isNullOrEmpty(),
+                            onUsePrevious = {
+                                val latest = storedDates?.firstOrNull()
+                                if (latest == null) startFresh() else adoptOrAsk(latest)
+                            },
+                            onStartNew = ::startFresh,
+                            onPickFromDate = { showDatePicker = true },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(32.dp),
+                        )
+                        AppScreen.Main -> Box(modifier = Modifier.fillMaxSize().blur(previewBlur)) {
+                            MainScreen(
+                                repository = repository,
+                                catalog = catalog,
+                                scope = scope,
+                                items = if (resuming) resumePreview else items,
+                                dateIso = resumeDate ?: repository.todayIso,
+                                settings = settings,
+                                onOpenImport = { screen = AppScreen.Import },
+                            )
+                        }
+                        AppScreen.Import -> ImportScreen(
+                            items = items,
+                            onBack = { screen = AppScreen.Main },
+                            onApply = { received ->
+                                scope.launch { repository.replaceTodayList(received) }
                                 screen = AppScreen.Main
-                            }
-                        },
-                        onPickFromDate = { showDatePicker = true },
-                    )
-                    AppScreen.Main -> MainScreen(
-                        repository = repository,
-                        catalog = catalog,
-                        scope = scope,
-                        items = items,
-                        settings = settings,
-                        onOpenImport = { screen = AppScreen.Import },
-                    )
-                    AppScreen.Import -> ImportScreen(
-                        items = items,
-                        onBack = { screen = AppScreen.Main },
-                        onApply = { received ->
-                            scope.launch { repository.replaceTodayList(received) }
-                            screen = AppScreen.Main
-                        },
-                    )
+                            },
+                        )
+                    }
+                }
+
+                // The resume prompt: the welcome screen's own content, over
+                // the blurred list it is asking about.
+                AnimatedVisibility(
+                    visible = resuming,
+                    enter = fadeIn(tween(SCREEN_TRANSITION_MS)) +
+                        scaleIn(tween(SCREEN_TRANSITION_MS), initialScale = 0.94f),
+                    exit = fadeOut(tween(SCREEN_TRANSITION_MS)) +
+                        scaleOut(tween(SCREEN_TRANSITION_MS), targetScale = 0.94f),
+                ) {
+                    val interactionSource = remember { MutableInteractionSource() }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.72f))
+                            // Swallows taps and drags so nothing reaches the
+                            // list behind, which is only a preview until one
+                            // of these buttons is pressed.
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = {},
+                            ),
+                    ) {
+                        WelcomeContent(
+                            hasStoredLists = true,
+                            onUsePrevious = { resumeDate?.let(::adoptOrAsk) },
+                            onStartNew = ::startFresh,
+                            onPickFromDate = { showDatePicker = true },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(32.dp),
+                        )
+                    }
                 }
             }
         }
-    }
 
-    if (showDatePicker) {
-        DateWheelSheet(
-            dates = storedDates,
-            onDismiss = { showDatePicker = false },
-            onLoad = { isoDate ->
-                showDatePicker = false
-                adoptOrAsk(isoDate)
-            },
-        )
-    }
+        if (showDatePicker) {
+            DateWheelSheet(
+                dates = storedDates.orEmpty(),
+                onDismiss = { showDatePicker = false },
+                onLoad = { isoDate ->
+                    showDatePicker = false
+                    adoptOrAsk(isoDate)
+                },
+            )
+        }
 
-    pendingAdoptDate?.let { isoDate ->
-        AlertDialog(
-            onDismissRequest = { pendingAdoptDate = null },
-            title = { Text("Keep your progress?") },
-            text = {
-                Text(
-                    "This list has checked-off items. Keep them checked (picking up " +
-                        "where you left off), or clear them for a fresh shopping run?",
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pendingAdoptDate = null
-                        scope.launch {
-                            repository.adoptList(isoDate, clearChecked = true)
-                            screen = AppScreen.Main
-                        }
-                    },
-                ) { Text("Clear checked") }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        pendingAdoptDate = null
-                        scope.launch {
-                            repository.adoptList(isoDate, clearChecked = false)
-                            screen = AppScreen.Main
-                        }
-                    },
-                ) { Text("Keep progress") }
-            },
-        )
+        pendingAdoptDate?.let { isoDate ->
+            AlertDialog(
+                onDismissRequest = { pendingAdoptDate = null },
+                title = { Text("Keep your progress?") },
+                text = {
+                    Text(
+                        "This list has checked-off items. Keep them checked (picking up " +
+                            "where you left off), or clear them for a fresh shopping run?",
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            pendingAdoptDate = null
+                            scope.launch {
+                                repository.adoptList(isoDate, clearChecked = true)
+                                finishStartup()
+                            }
+                        },
+                    ) { Text("Clear checked") }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            pendingAdoptDate = null
+                            scope.launch {
+                                repository.adoptList(isoDate, clearChecked = false)
+                                finishStartup()
+                            }
+                        },
+                    ) { Text("Keep progress") }
+                },
+            )
+        }
     }
 }
 
+/**
+ * The start-screen body: logo, wordmark and the three list choices.
+ *
+ * Shared verbatim by the welcome screen and by the resume prompt that appears
+ * over a blurred previous list, so the two can never drift apart.
+ */
 @Composable
-private fun WelcomeScreen(
+private fun WelcomeContent(
     hasStoredLists: Boolean,
     onUsePrevious: () -> Unit,
     onStartNew: () -> Unit,
     onPickFromDate: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(32.dp),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

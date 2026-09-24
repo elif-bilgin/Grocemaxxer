@@ -98,6 +98,12 @@ internal fun MainScreen(
     catalog: CatalogRepository,
     scope: CoroutineScope,
     items: List<GroceryItem>,
+    /**
+     * The date the displayed list belongs to. Normally today, but while the
+     * resume prompt previews an earlier list this is that list's date, so the
+     * header behind the prompt doesn't claim the items are today's.
+     */
+    dateIso: String,
     settings: AppSettings,
     onOpenImport: () -> Unit,
 ) {
@@ -181,7 +187,7 @@ internal fun MainScreen(
                             alignment = Alignment.CenterStart,
                         )
                         Text(
-                            text = fullDateLabel(repository.todayIso),
+                            text = fullDateLabel(dateIso),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -192,7 +198,7 @@ internal fun MainScreen(
                     IconButton(
                         onClick = {
                             shareListText(
-                                ShareTextCodec.encode(items, shortDateLabel(repository.todayIso)),
+                                ShareTextCodec.encode(items, shortDateLabel(dateIso)),
                             )
                         },
                         enabled = items.isNotEmpty(),

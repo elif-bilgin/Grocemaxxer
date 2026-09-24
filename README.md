@@ -14,10 +14,14 @@ Features:
   sections collapse into an animated "Done sections" stack at the bottom
   (tap to expand, scroll back up to re-stack). Checking off the last item
   blurs the screen with a "You got everything!" celebration.
-- Lists are stored per calendar date; the start screen offers Use
-  Previous List / Start New List / Use List From Date (wheel picker), and
-  re-using a list with checked items asks whether to keep or clear the
-  progress.
+- Lists are stored per calendar date. The app opens straight onto your
+  most recent list rather than a menu. If that list is from an earlier
+  day it opens blurred, behind a prompt carrying the start screen's own
+  buttons -- Use Previous List / Start New List / Use List From Date
+  (wheel picker) -- so you can see the list you are being asked about.
+  Re-using a list with checked items asks whether to keep or clear the
+  progress. The start screen proper is shown only on a first run, when
+  there is no list to open.
 - Duplicate items are skipped automatically (case-insensitive), names are
   Title Cased, and the add sheet lets you override the auto-detected
   category.
