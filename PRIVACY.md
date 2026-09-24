@@ -63,4 +63,4 @@ address with a new "last updated" date.
 ## Contact
 
 Questions about this policy can be sent to:
-**<!-- TODO: contact email address -->**
+**grocemaxxer@gmail.com**
