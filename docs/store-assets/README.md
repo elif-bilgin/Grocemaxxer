@@ -11,7 +11,7 @@ canvas. Regenerate it with:
 from PIL import Image
 
 CANVAS = 1456                      # 108dp adaptive-icon canvas
-ART = 860                          # keeps the carton inside the 66dp safe zone
+ART = 1120                         # oversized on purpose -- see below
 CROP = (535, 40, 805, 310)         # the carton, plus a little of the swirl
 
 src = Image.open(
@@ -25,9 +25,17 @@ foreground.save("androidApp/src/main/res/drawable/ic_launcher_foreground.png")
 ```
 
 Adaptive icons show only the central 72dp of the 108dp canvas, and guarantee
-only the central 66dp circle. `ART = 860` puts the carton body inside that
-circle, so round and squircle masks clip the decorative swirl rather than the
-subject. Re-run the Play Store icon below after changing this.
+only the central 66dp circle.
+
+`ART` is deliberately larger than the 971px visible window. The crop slices
+through the swirl on its left and bottom, and at any size that fits inside the
+window those straight cut edges are visible as hard lines against the icon
+background. At 1120 the artwork overhangs the window by 74px on every side, so
+the swirl bleeds off the edge the way the rest of the illustration does, while
+the carton itself still sits whole inside the safe-zone circle. Shrinking
+`ART` back below 971 brings the cut edges back; growing it much past 1200
+starts clipping the carton's cap. Re-run the Play Store icon below after
+changing this.
 
 The icons deliberately have no `<monochrome>` layer. A themed icon is tinted
 flat, which would reduce this artwork to a featureless silhouette; without the
