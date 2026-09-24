@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -659,9 +662,23 @@ private fun AddItemSheet(
         if (itemText.isNotBlank()) onAdd(itemText, selectedSection)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        // Open at full height instead of the half-height resting position:
+        // this sheet has a text field, suggestions, a category picker and the
+        // aisle browser, and half a screen cannot show them.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
             modifier = Modifier
+                // The sheet would otherwise be only as tall as its content.
+                // Pinning it to most of the available height brings the top
+                // up to just under the header, leaving the date visible.
+                .fillMaxHeight(0.88f)
+                // Edge-to-edge windows no longer resize for the keyboard, so
+                // the sheet has to make room for it itself. Without this the
+                // Add button ends up behind the keyboard the moment you type.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 24.dp, end = 24.dp, bottom = 40.dp),
         ) {
