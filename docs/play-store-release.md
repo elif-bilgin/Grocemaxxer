@@ -192,13 +192,25 @@ Tablet screenshots are optional but improve the listing's device coverage.
 
 ## 5. Release track
 
-First upload goes to **internal testing** — it reviews in hours rather than
-days and lets you check the Play-delivered build on a real device. Promote to
-production once the smoke-test list above passes on the downloaded build.
+This account is a personal developer account created after 13 November 2023,
+so production is locked behind a closed test: **12 testers opted in
+continuously for 14 days**, then an application for production access that
+takes up to about 7 days to review. That clock is the long pole of the whole
+release — nothing else here takes more than an afternoon.
 
-New accounts publishing their first app may be asked to run a closed test
-before production is unlocked; the Console states the current requirement at
-the time of submission.
+The Console gates the steps in this order:
+
+1. **Internal testing** — optional, available now, builds land in seconds.
+   Use it to check a Play-delivered build on a real device.
+2. **Finish setting up your app** — the store listing, content rating, data
+   safety, target audience and privacy policy. Closed testing stays locked
+   until this is done.
+3. **Closed testing** — the 12-tester, 14-day requirement runs here.
+4. **Production** — apply once the closed test qualifies.
+
+`docs/play-store-testing.md` covers steps 3 and 4: recruiting testers, what to
+have them exercise, and the answers the production-access application asks
+for.
 
 ## 6. Every subsequent upload
 

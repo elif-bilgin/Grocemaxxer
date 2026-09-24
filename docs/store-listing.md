@@ -66,9 +66,24 @@ and it collects nothing about you — there is nothing to collect it with.
 ## Notes
 
 - The em dash in the short description is intentional; Play accepts it.
-- The full description mentions the store names descriptively. It makes no
-  claim of affiliation, which keeps it inside Play's impersonation and
-  intellectual-property policies. Do not add store logos to the listing
-  graphics.
+- **The supermarket names are a review risk worth a decision.** The full
+  description names Safeway, Whole Foods, Target and Trader Joe's. The use is
+  descriptive and claims no affiliation, which is normally permitted, but
+  third-party trademarks in store metadata are a known trigger for review
+  flags under Play's impersonation and intellectual-property policies, and an
+  appeal costs days you do not have while a 14-day tester clock is running.
+
+  If you would rather not risk it, the safer wording keeps the feature and
+  drops the brands from the *listing* only — the names stay in the app, where
+  they are functional rather than promotional:
+
+  > PICK YOUR STORE
+  > Every supermarket is laid out differently, so the walking order changes
+  > with it. Choose from several major chain layouts and the sections reorder
+  > to match, including the cart-packing rules of thumb: heavy dry goods
+  > first, produce on top of them, delicate bakery items last.
+
+  Either way: no store logos in the listing graphics, and no claim of
+  partnership anywhere.
 - "around 250" tracks `PresetCatalog.items`; update it if the catalogue grows
   substantially.
