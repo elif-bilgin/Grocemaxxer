@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grocemaxxer.shared.GroceryItem
+import com.grocemaxxer.shared.longDateLabel
 import com.grocemaxxer.shared.pickerDateLabel
 import grocemaxxer.composeapp.generated.resources.Res
 import grocemaxxer.composeapp.generated.resources.grocemaxxer_title_no_background
@@ -271,6 +272,12 @@ fun App() {
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
                                 .padding(32.dp),
+                            subtitle = resumeDate?.let {
+                                "This is an old list from ${longDateLabel(it)}."
+                            }.orEmpty(),
+                            usePreviousLabel = "USE AS TODAY'S LIST",
+                            startNewLabel = "START A NEW LIST",
+                            pickFromDateLabel = "Import from a different date…",
                         )
                     }
                 }
@@ -328,8 +335,10 @@ fun App() {
 /**
  * The start-screen body: logo, wordmark and the three list choices.
  *
- * Shared verbatim by the welcome screen and by the resume prompt that appears
- * over a blurred previous list, so the two can never drift apart.
+ * Shared by the welcome screen and by the resume prompt that appears over a
+ * blurred previous list, so the two keep the same shape. Only the wording
+ * differs: the prompt names the date of the list it is asking about, and
+ * labels its buttons in those terms.
  */
 @Composable
 private fun WelcomeContent(
@@ -338,6 +347,10 @@ private fun WelcomeContent(
     onStartNew: () -> Unit,
     onPickFromDate: () -> Unit,
     modifier: Modifier = Modifier,
+    subtitle: String = "Your grocery run, optimized.",
+    usePreviousLabel: String = "USE PREVIOUS LIST",
+    startNewLabel: String = "START NEW LIST",
+    pickFromDateLabel: String = "Use list from a date…",
 ) {
     Column(
         modifier = modifier,
@@ -357,7 +370,7 @@ private fun WelcomeContent(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Your grocery run, optimized.",
+            text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -375,7 +388,7 @@ private fun WelcomeContent(
             ),
             contentPadding = PaddingValues(vertical = 14.dp),
         ) {
-            Text("USE PREVIOUS LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Text(usePreviousLabel, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
         }
         Spacer(Modifier.height(12.dp))
         OutlinedButton(
@@ -384,14 +397,14 @@ private fun WelcomeContent(
             shape = RoundedCornerShape(24.dp),
             contentPadding = PaddingValues(vertical = 14.dp),
         ) {
-            Text("START NEW LIST", fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Text(startNewLabel, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
         }
         Spacer(Modifier.height(12.dp))
         TextButton(
             onClick = onPickFromDate,
             enabled = hasStoredLists,
         ) {
-            Text("Use list from a date…")
+            Text(pickFromDateLabel)
         }
         Spacer(Modifier.height(28.dp))
     }

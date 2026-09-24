@@ -25,6 +25,8 @@ class TextFormatTest {
         assertEquals("Sat, Jul 18", shortDateLabel("2026-07-18"))
         assertEquals("Saturday, Jul 18", fullDateLabel("2026-07-18"))
         assertEquals("Sat, Jul 18, 2026", pickerDateLabel("2026-07-18"))
+        assertEquals("September 20, 2026", longDateLabel("2026-09-20"))
+        assertEquals("July 18, 2026", longDateLabel("2026-07-18"))
         assertEquals("not-a-date", shortDateLabel("not-a-date"))
     }
 }

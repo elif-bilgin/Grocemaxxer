@@ -20,6 +20,12 @@ fun fullDateLabel(isoDate: String): String {
     return "${date.dayOfWeek.longName()}, ${date.month.shortName()} ${date.dayOfMonth}"
 }
 
+/** "2026-09-20" -> "September 20, 2026" -- used when naming an older list. */
+fun longDateLabel(isoDate: String): String {
+    val date = parseOrNull(isoDate) ?: return isoDate
+    return "${date.month.longName()} ${date.dayOfMonth}, ${date.year}"
+}
+
 /** "2026-07-18" -> "Sat, Jul 18, 2026" -- used in the date picker wheel. */
 fun pickerDateLabel(isoDate: String): String {
     val date = parseOrNull(isoDate) ?: return isoDate
@@ -38,5 +44,7 @@ private fun kotlinx.datetime.DayOfWeek.shortName(): String = longName().take(3)
 private fun kotlinx.datetime.DayOfWeek.longName(): String =
     name.lowercase().replaceFirstChar { it.titlecase() }
 
-private fun kotlinx.datetime.Month.shortName(): String =
-    name.lowercase().replaceFirstChar { it.titlecase() }.take(3)
+private fun kotlinx.datetime.Month.shortName(): String = longName().take(3)
+
+private fun kotlinx.datetime.Month.longName(): String =
+    name.lowercase().replaceFirstChar { it.titlecase() }
