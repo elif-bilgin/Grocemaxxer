@@ -219,7 +219,6 @@ the time of submission.
 | R8 / resource shrinking | `androidApp/build.gradle.kts`, `proguard-rules.pro` |
 | Upload signing | `keystore.properties` or `GROCEMAXXER_*` env vars |
 | Backup and device-transfer rules | `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` |
-| Themed (monochrome) launcher icon | `res/mipmap-anydpi-v26/ic_launcher.xml` |
 | Database upgrades never crash | `fallbackToDestructiveMigration` in `CatalogDatabase.kt` |
 | 16 KB page-size support | AGP 8.10.1 packaging + `sqlite-bundled` 2.7.0 (verify once, above) |
 | Privacy policy | `PRIVACY.md` |

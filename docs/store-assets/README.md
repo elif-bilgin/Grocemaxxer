@@ -1,4 +1,39 @@
-# Play Store graphics
+# Branding assets
+
+## Launcher icon
+
+`androidApp/src/main/res/drawable/ic_launcher_foreground.png` is the milk
+carton from `grocemaxxer_logo.png`, cropped and placed on the 108dp adaptive
+canvas. Regenerate it with:
+
+```python
+# pip install pillow
+from PIL import Image
+
+CANVAS = 1456                      # 108dp adaptive-icon canvas
+ART = 860                          # keeps the carton inside the 66dp safe zone
+CROP = (535, 40, 805, 310)         # the carton, plus a little of the swirl
+
+src = Image.open(
+    "composeApp/src/commonMain/composeResources/drawable/grocemaxxer_logo.png"
+).convert("RGBA")
+carton = src.crop(CROP).resize((ART, ART), Image.LANCZOS)
+foreground = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
+offset = (CANVAS - ART) // 2
+foreground.paste(carton, (offset, offset), carton)
+foreground.save("androidApp/src/main/res/drawable/ic_launcher_foreground.png")
+```
+
+Adaptive icons show only the central 72dp of the 108dp canvas, and guarantee
+only the central 66dp circle. `ART = 860` puts the carton body inside that
+circle, so round and squircle masks clip the decorative swirl rather than the
+subject. Re-run the Play Store icon below after changing this.
+
+The icons deliberately have no `<monochrome>` layer. A themed icon is tinted
+flat, which would reduce this artwork to a featureless silhouette; without the
+layer, launchers fall back to the full-colour icon.
+
+## Play Store graphics
 
 Generated from the branding assets in the repo, so they stay in sync if the
 branding changes. Regenerate with:
