@@ -172,13 +172,14 @@ internal fun ImportScreen(
                                 // The card grows or shrinks to fit while the outgoing and
                                 // incoming panels slide in the direction of the change.
                                 val direction = if (targetState) 1 else -1
-                                (
-                                    slideInVertically(tween(300)) { height -> direction * height / 6 } +
-                                        fadeIn(tween(300))
-                                    ) togetherWith (
-                                    slideOutVertically(tween(200)) { height -> -direction * height / 6 } +
-                                        fadeOut(tween(160))
-                                    ).using(SizeTransform { _, _ -> tween(320) })
+                                val enter = slideInVertically(tween(300)) { height ->
+                                    direction * height / 6
+                                } + fadeIn(tween(300))
+                                val exit = slideOutVertically(tween(200)) { height ->
+                                    -direction * height / 6
+                                } + fadeOut(tween(160))
+                                (enter togetherWith exit)
+                                    .using(SizeTransform { _, _ -> tween(320) })
                             },
                             label = "mergeMode",
                         ) { merging ->
