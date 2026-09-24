@@ -2,32 +2,32 @@
 
 ## Launcher icon
 
-`androidApp/src/main/res/drawable/ic_launcher_foreground.png` is the basket
-from `grocemaxxer_logo.png`, placed whole on the 108dp adaptive canvas.
-Regenerate it with:
+`androidApp/src/main/res/drawable/ic_launcher_foreground.png` is the milk
+carton from `grocemaxxer_logo.png`, cropped and placed on the 108dp adaptive
+canvas. Regenerate it with:
 
 ```python
 # pip install pillow
 from PIL import Image
 
 CANVAS = 1456                      # 108dp adaptive-icon canvas
-SAFE = round(CANVAS * 66 / 108)    # 890px: the safe-zone circle
+ART = 860                          # keeps the carton inside the 66dp safe zone
+CROP = (535, 40, 805, 310)         # the carton, plus a little of the swirl
 
-basket = Image.open(
+src = Image.open(
     "composeApp/src/commonMain/composeResources/drawable/grocemaxxer_logo.png"
-).convert("RGBA").resize((SAFE, SAFE), Image.LANCZOS)
+).convert("RGBA")
+carton = src.crop(CROP).resize((ART, ART), Image.LANCZOS)
 foreground = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-off = (CANVAS - SAFE) // 2
-foreground.paste(basket, (off, off), basket)
+offset = (CANVAS - ART) // 2
+foreground.paste(carton, (offset, offset), carton)
 foreground.save("androidApp/src/main/res/drawable/ic_launcher_foreground.png")
 ```
 
 Adaptive icons show only the central 72dp of the 108dp canvas, and guarantee
-only the central 66dp circle. Sizing the basket to the safe zone is what keeps
-the whole basket visible: dropping the artwork in at full canvas size instead
-makes every launcher crop into the middle of it, which zooms past the basket
-shape entirely and clips the milk carton at the edge. Re-run the Play Store
-icon below after changing this.
+only the central 66dp circle. `ART = 860` puts the carton body inside that
+circle, so round and squircle masks clip the decorative swirl rather than the
+subject. Re-run the Play Store icon below after changing this.
 
 The icons deliberately have no `<monochrome>` layer. A themed icon is tinted
 flat, which would reduce this artwork to a featureless silhouette; without the
