@@ -39,7 +39,11 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.grocemaxxer.android"
+        // The identity registered in Play Console. Permanent once the
+        // first bundle is uploaded. Deliberately not the same as the
+        // namespace below, which only governs where R and BuildConfig
+        // are generated and what ".MainActivity" resolves against.
+        applicationId = "com.groovy.grocemaxxer"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         // Bump versionCode on every upload to Play; Play rejects a reused one.

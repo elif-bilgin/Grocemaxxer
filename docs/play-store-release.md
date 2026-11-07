@@ -72,7 +72,7 @@ If something breaks only in release, it is a missing keep rule — add it to
 
 `./gradlew :androidApp:installRelease` refuses to install over a debug build
 of the same application ID (different signature). Run
-`adb uninstall com.grocemaxxer.android` first.
+`adb uninstall com.groovy.grocemaxxer` first.
 
 ### Verify 16 KB page-size compatibility
 
@@ -115,7 +115,7 @@ to a 16 KB-aligned release — never to lower `targetSdk`.
 | Category | Food & Drink (alternative: Shopping) |
 | Contact email | _required; also fill in the placeholder in `PRIVACY.md`_ |
 | Privacy policy URL | see below |
-| Package name | `com.grocemaxxer.android` |
+| Package name | `com.groovy.grocemaxxer` |
 
 **Privacy policy URL.** `PRIVACY.md` in this repo is the policy text. Play
 needs it at a public URL. The quickest route is GitHub Pages: enable Pages for

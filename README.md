@@ -105,7 +105,7 @@ has to be installed -- Android Studio offers to fetch it on first sync.
 Command-line equivalent, once a device shows up in `adb devices`:
 ```
 ./gradlew :androidApp:installDebug
-adb shell am start -n com.grocemaxxer.android/.MainActivity
+adb shell am start -n com.groovy.grocemaxxer/com.grocemaxxer.android.MainActivity
 ```
 
 ### Tests
