@@ -75,12 +75,8 @@ import org.jetbrains.compose.resources.painterResource
  * lists have been read and the startup destination is known; declaration
  * order doubles as navigation depth, which drives the slide direction of the
  * screen transition.
- *
- * [Login] only appears when an auth backend is configured. With none wired
- * in, startup skips it and the app behaves exactly as it does without
- * accounts.
  */
-private enum class AppScreen { Loading, Login, Welcome, Main, Import }
+private enum class AppScreen { Loading, Welcome, Main, Import }
 
 private const val SCREEN_TRANSITION_MS = 320
 
@@ -88,9 +84,6 @@ private const val SCREEN_TRANSITION_MS = 320
 fun App() {
     val repository = remember { GroceryRepository(groceryDataStore) }
     val catalog = remember { CatalogRepository() }
-    val authClient = remember { activeAuthClient }
-    val auth = remember { AuthRepository(groceryDataStore) }
-    val authSession by auth.session.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
     val settings by repository.settings.collectAsState(initial = AppSettings())
     val items by repository.items.collectAsState(initial = emptyList())
@@ -120,12 +113,10 @@ fun App() {
     // most recent list rather than to a menu, and only fall back to the
     // welcome screen when there is genuinely nothing to open.
     var startupRouted by remember { mutableStateOf(false) }
-
-    /**
-     * Picks the destination once the stored dates are known. Split out so the
-     * login screen can call it on success without duplicating the rules.
-     */
-    suspend fun routeToList(dates: List<String>) {
+    LaunchedEffect(storedDates) {
+        val dates = storedDates ?: return@LaunchedEffect
+        if (startupRouted) return@LaunchedEffect
+        startupRouted = true
         val latest = dates.firstOrNull()
         when {
             latest == null -> screen = AppScreen.Welcome
@@ -136,19 +127,6 @@ fun App() {
                 screen = AppScreen.Main
             }
         }
-    }
-
-    LaunchedEffect(storedDates, authSession) {
-        val dates = storedDates ?: return@LaunchedEffect
-        if (startupRouted) return@LaunchedEffect
-        // The gate only exists when a backend does. A saved session survives
-        // restarts and is only discarded when the app's version code changes.
-        if (authClient.isConfigured && authSession == null) {
-            screen = AppScreen.Login
-            return@LaunchedEffect
-        }
-        startupRouted = true
-        routeToList(dates)
     }
 
     fun adoptOrAsk(isoDate: String) {
@@ -227,21 +205,6 @@ fun App() {
                 ) { current ->
                     when (current) {
                         AppScreen.Loading -> Box(modifier = Modifier.fillMaxSize())
-                        AppScreen.Login -> LoginScreen(
-                            client = authClient,
-                            auth = auth,
-                            scope = scope,
-                            onAuthenticated = {
-                                scope.launch {
-                                    startupRouted = true
-                                    routeToList(storedDates.orEmpty())
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(32.dp),
-                        )
                         AppScreen.Welcome -> WelcomeContent(
                             hasStoredLists = !storedDates.isNullOrEmpty(),
                             onUsePrevious = {
