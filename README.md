@@ -7,9 +7,16 @@ store. Check items off in the order they appear and you shouldn't have to
 double back.
 
 Features:
-- Store selector (Default, Safeway, Whole Foods, Target, Trader Joe's) --
-  each store has its own section ordering tuned to its real layout
-  (`shared/.../Store.kt`); the choice is persisted.
+- Store selector (No Store Selected, Safeway, Whole Foods, Target, Trader
+  Joe's, Costco) -- each store has its own section ordering tuned to its
+  layout (`shared/.../Store.kt`); the choice is persisted. Costco is a
+  warehouse rather than a supermarket, so its walk runs the pallet aisles
+  first and the refrigerated back wall last.
+- Cover-display support. On a window too short to be a phone screen -- the
+  Galaxy Z Flip's outer display -- the app shows `CoverScreen` instead of the
+  full UI: only the items still to buy, grouped by section, with rows sized
+  for a thumb and no chrome. Both read the same stored list, so opening the
+  phone picks up where the cover screen left off.
 - Checked items sink to the bottom of their section; fully-checked
   sections collapse into an animated "Done sections" stack at the bottom
   (tap to expand, scroll back up to re-stack). Checking off the last item

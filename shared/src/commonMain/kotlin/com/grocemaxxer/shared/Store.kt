@@ -15,6 +15,7 @@ enum class Store(val displayName: String, val emoji: String) {
     WHOLE_FOODS("Whole Foods", "🥑"),
     TARGET("Target", "🎯"),
     TRADER_JOES("Trader Joe's", "🌺"),
+    COSTCO("Costco", "📦"),
     ;
 
     companion object {
@@ -82,6 +83,28 @@ private val storeOrders: Map<Store, List<StoreSection>> = mapOf(
         StoreSection.DELI,
         StoreSection.MEAT_SEAFOOD,
         StoreSection.DAIRY_EGGS,
+        StoreSection.FROZEN,
+        StoreSection.OTHER,
+    ),
+
+    // Costco: a warehouse, not a supermarket. The front of the box is
+    // non-food (electronics, seasonal, apparel) with the pallet aisles of dry
+    // goods behind it; the fresh departments run along the back and side
+    // walls, with the frozen bunkers next to them. So: dry and heavy first,
+    // then the back wall, produce on top of the load, and frozen last before
+    // the checkout runway.
+    //
+    // Costco warehouses are laid out far more consistently than supermarket
+    // chains, but Costco publishes no floor plan and individual warehouses do
+    // differ -- which side the fresh wall is on depends on which door you
+    // come in. Treat this as a good default rather than a surveyed layout.
+    Store.COSTCO to centerAisles + careAndHome + listOf(
+        StoreSection.MEAT_SEAFOOD,
+        StoreSection.DELI,
+        StoreSection.DAIRY_EGGS,
+        StoreSection.PRODUCE,
+        StoreSection.FLORAL,
+        StoreSection.BAKERY,
         StoreSection.FROZEN,
         StoreSection.OTHER,
     ),

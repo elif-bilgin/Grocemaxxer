@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -79,6 +80,14 @@ import org.jetbrains.compose.resources.painterResource
 private enum class AppScreen { Loading, Welcome, Main, Import }
 
 private const val SCREEN_TRANSITION_MS = 320
+
+/**
+ * Below this height the app is on a cover display -- the Galaxy Z Flip's
+ * outer screen -- and switches to [CoverScreen] rather than squeezing the
+ * full UI into it. No phone's inner screen is anywhere near this short, so
+ * height alone separates the two without catching ordinary small handsets.
+ */
+private val COVER_SCREEN_MAX_HEIGHT = 420.dp
 
 @Composable
 fun App() {
@@ -177,7 +186,19 @@ fun App() {
             // anything else reading WindowInsets below this point) does not
             // add them a second time. safeDrawing also covers the keyboard,
             // which edge-to-edge windows no longer get from adjustResize.
-            Box(modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+            // Measured inside the inset padding, so the decision is made on
+            // the space actually drawable -- which on a Flip's cover display
+            // already excludes the camera cutout.
+            BoxWithConstraints(modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+                if (maxHeight < COVER_SCREEN_MAX_HEIGHT) {
+                    CoverScreen(
+                        items = items,
+                        settings = settings,
+                        onToggle = { id -> scope.launch { repository.toggleChecked(id) } },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    return@BoxWithConstraints
+                }
                 AnimatedContent(
                     targetState = screen,
                     transitionSpec = {

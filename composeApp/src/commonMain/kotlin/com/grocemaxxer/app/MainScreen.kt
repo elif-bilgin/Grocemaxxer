@@ -387,12 +387,25 @@ private fun StoreSelectorRow(
     onSelect: (Store) -> Unit,
 ) {
     val rowState = rememberLazyListState()
-    // Selected store leads the row; the rest keep their canonical order.
-    // Keyed items + animateItem make the promotion a slide, not a jump.
-    val orderedStores = listOf(selected) + Store.entries.filter { it != selected }
 
+    // The selected store leads the row, but promoting it and scrolling back
+    // to the start cannot happen at the same time. animateScrollToItem works
+    // out its target from item offsets that animateItem is busy moving, so
+    // the two animations chase each other and the row stutters.
+    //
+    // Sequence them instead: scroll first -- and only when the row is not
+    // already at the start, which is the common case with this few chips --
+    // then promote. The selection highlight still changes on tap, so the
+    // feedback is immediate; only the reordering waits.
+    var leading by remember { mutableStateOf(selected) }
     LaunchedEffect(selected) {
-        rowState.animateScrollToItem(0)
+        if (rowState.firstVisibleItemIndex != 0 || rowState.firstVisibleItemScrollOffset != 0) {
+            rowState.animateScrollToItem(0)
+        }
+        leading = selected
+    }
+    val orderedStores = remember(leading) {
+        listOf(leading) + Store.entries.filter { it != leading }
     }
 
     LazyRow(

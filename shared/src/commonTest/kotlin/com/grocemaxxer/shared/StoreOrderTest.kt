@@ -30,6 +30,25 @@ class StoreOrderTest {
     }
 
     @Test
+    fun costcoDoesDryGoodsFirstThenTheFreshWallThenFrozen() {
+        val items = listOf(
+            item("pasta"), item("apples"), item("chicken breast"),
+            item("milk"), item("frozen pizza"), item("sourdough bread"),
+        )
+        val sections = GroceryListOrganizer.organize(items, Store.COSTCO).map { it.section }
+
+        // Pallet aisles of dry goods are at the front of the warehouse.
+        assertEquals(StoreSection.PANTRY_CANNED, sections.first())
+        // Frozen bunkers are the last stop before the checkout runway.
+        assertEquals(StoreSection.FROZEN, sections.last())
+        // The fresh wall, loaded so nothing gets crushed: proteins, then
+        // dairy, then produce on top, then the bakery.
+        assertTrue(sections.indexOf(StoreSection.MEAT_SEAFOOD) < sections.indexOf(StoreSection.DAIRY_EGGS))
+        assertTrue(sections.indexOf(StoreSection.DAIRY_EGGS) < sections.indexOf(StoreSection.PRODUCE))
+        assertTrue(sections.indexOf(StoreSection.PRODUCE) < sections.indexOf(StoreSection.BAKERY))
+    }
+
+    @Test
     fun defaultOrderMatchesSectionWalkOrder() {
         val items = listOf(item("milk"), item("apples"), item("bread"), item("tulips"))
         val sections = GroceryListOrganizer.organize(items, Store.DEFAULT).map { it.section }
