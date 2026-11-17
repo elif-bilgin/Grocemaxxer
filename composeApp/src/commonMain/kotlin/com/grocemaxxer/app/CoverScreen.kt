@@ -65,10 +65,13 @@ internal fun CoverScreen(
     val checkedCount = items.count { it.isChecked }
 
     Column(modifier = modifier.fillMaxSize()) {
+        // A cover display reports no window insets, so without an explicit
+        // top margin the header sits flush against the physical edge and the
+        // first line reads as clipped.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -77,14 +80,14 @@ internal fun CoverScreen(
                     remaining.isEmpty() -> "All done"
                     else -> "${items.size - checkedCount} to go"
                 },
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),
             )
             if (items.isNotEmpty()) {
                 Text(
                     text = "$checkedCount/${items.size}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -96,22 +99,29 @@ internal fun CoverScreen(
             remaining.isEmpty() -> CoverMessage("You got everything! 🎉")
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 remaining.forEach { group ->
+                    val style = sectionStyle(group.section)
                     item(key = "header-${group.section.name}") {
                         Text(
-                            text = "${sectionStyle(group.section).emoji} ${group.section.displayName}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = "${style.emoji} ${group.section.displayName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = style.accent,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                            modifier = Modifier.padding(start = 2.dp, top = 6.dp, bottom = 1.dp),
                         )
                     }
                     items(group.items, key = { it.id }) { groceryItem ->
-                        CoverItemRow(name = groceryItem.name, onClick = { onToggle(groceryItem.id) })
+                        CoverItemRow(
+                            name = groceryItem.name,
+                            style = style,
+                            darkMode = settings.darkMode,
+                            onClick = { onToggle(groceryItem.id) },
+                        )
                     }
                 }
             }
@@ -119,29 +129,40 @@ internal fun CoverScreen(
     }
 }
 
+/**
+ * Carries the section's own colour, the same idea as the aisle cards on the
+ * main screen -- a section is recognisable by its colour before you read it.
+ * Here the colour is on each row rather than on a card around the group,
+ * because a card's padding and corners cost height this screen cannot spare.
+ */
 @Composable
-private fun CoverItemRow(name: String, onClick: () -> Unit) {
+private fun CoverItemRow(
+    name: String,
+    style: SectionStyle,
+    darkMode: Boolean,
+    onClick: () -> Unit,
+) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(9.dp),
+        color = style.container(darkMode),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = 10.dp, vertical = 12.dp),
+                .padding(horizontal = 9.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(18.dp)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                    .size(15.dp)
+                    .border(2.dp, style.accent, CircleShape),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(9.dp))
             Text(
                 text = name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
