@@ -1,7 +1,9 @@
 package com.grocemaxxer.app
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -123,8 +126,26 @@ internal fun MainScreen(
     } else {
         items.filter { it.name.contains(searchQuery.trim(), ignoreCase = true) }
     }
-    val groups = remember(visibleItems, settings.store) {
-        GroceryListOrganizer.organize(visibleItems, settings.store)
+    // Changing the store reorders the chip row and every aisle card at once,
+    // and Compose animates both -- which is the flashing. Rather than try to
+    // make two simultaneous reorders look good, the swap is hidden: the store
+    // bar and everything below it fade to a flat colour, the reorder happens
+    // behind that, and it fades back.
+    //
+    // displayedStore is what the list is actually ordered by. It lags behind
+    // the stored setting until the cover is opaque, so nothing reorders in
+    // view.
+    var displayedStore by remember { mutableStateOf(settings.store) }
+    val storeSwapCover = remember { Animatable(0f) }
+    LaunchedEffect(settings.store) {
+        if (settings.store == displayedStore) return@LaunchedEffect
+        storeSwapCover.animateTo(1f, tween(STORE_SWAP_FADE_MS))
+        displayedStore = settings.store
+        storeSwapCover.animateTo(0f, tween(STORE_SWAP_FADE_MS))
+    }
+
+    val groups = remember(visibleItems, displayedStore) {
+        GroceryListOrganizer.organize(visibleItems, displayedStore)
     }
     val activeGroups = groups.filter { group -> group.items.any { !it.isChecked } }
     val archivedGroups = groups.filter { group -> group.items.all { it.isChecked } }
@@ -241,6 +262,8 @@ internal fun MainScreen(
                 }
                 Spacer(Modifier.height(10.dp))
 
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxSize()) {
                 StoreSelectorRow(
                     selected = settings.store,
                     onSelect = { store -> scope.launch { repository.setStore(store) } },
@@ -307,7 +330,9 @@ internal fun MainScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
                     ) {
-                        items(activeGroups, key = { it.section.name }) { group ->
+                        // Keying by store as well means a store change is a replace, not a
+                        // move, so no card animates to a new position.
+                        items(activeGroups, key = { "${displayedStore.name}-${it.section.name}" }) { group ->
                             SectionCard(
                                 group = group,
                                 darkMode = settings.darkMode,
@@ -327,7 +352,7 @@ internal fun MainScreen(
                                 )
                             }
                             if (archiveExpanded) {
-                                items(archivedGroups, key = { it.section.name }) { group ->
+                                items(archivedGroups, key = { "${displayedStore.name}-${it.section.name}" }) { group ->
                                     SectionCard(
                                         group = group,
                                         darkMode = settings.darkMode,
@@ -340,6 +365,18 @@ internal fun MainScreen(
                             }
                         }
                     }
+                }
+                }
+                if (storeSwapCover.value > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                (if (settings.darkMode) Color.Black else Color.White)
+                                    .copy(alpha = storeSwapCover.value),
+                            ),
+                    )
+                }
                 }
             }
         }
@@ -388,24 +425,20 @@ private fun StoreSelectorRow(
 ) {
     val rowState = rememberLazyListState()
 
-    // The selected store leads the row, but promoting it and scrolling back
-    // to the start cannot happen at the same time. animateScrollToItem works
-    // out its target from item offsets that animateItem is busy moving, so
-    // the two animations chase each other and the row stutters.
+    // Both the promotion and the scroll are instantaneous, because MainScreen
+    // has already faded a cover over this row by the time they happen. There
+    // is nothing to animate smoothly when nothing is visible, and animating
+    // them was the source of the stutter: animateScrollToItem derives its
+    // target from offsets that animateItem is concurrently moving.
     //
-    // Sequence them instead: scroll first -- and only when the row is not
-    // already at the start, which is the common case with this few chips --
-    // then promote. The selection highlight still changes on tap, so the
-    // feedback is immediate; only the reordering waits.
-    var leading by remember { mutableStateOf(selected) }
-    LaunchedEffect(selected) {
-        if (rowState.firstVisibleItemIndex != 0 || rowState.firstVisibleItemScrollOffset != 0) {
-            rowState.animateScrollToItem(0)
-        }
-        leading = selected
+    // scrollToItem(0) unconditionally, so the row is always back at the far
+    // left and the selected chip -- now first -- is on screen whatever the
+    // row was scrolled to before.
+    val orderedStores = remember(selected) {
+        listOf(selected) + Store.entries.filter { it != selected }
     }
-    val orderedStores = remember(leading) {
-        listOf(leading) + Store.entries.filter { it != leading }
+    LaunchedEffect(selected) {
+        rowState.scrollToItem(0)
     }
 
     LazyRow(
@@ -427,7 +460,6 @@ private fun StoreSelectorRow(
                 } else {
                     null
                 },
-                modifier = Modifier.animateItem(),
             ) {
                 Text(
                     text = "${store.emoji} ${store.displayName}",
@@ -659,6 +691,13 @@ private fun CompletionOverlay(
         }
     }
 }
+
+/**
+ * How long the store-swap cover takes to fade in, and again to fade out.
+ * Short enough not to feel like a transition, long enough that the
+ * reorder underneath is never visible.
+ */
+private const val STORE_SWAP_FADE_MS = 130
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
