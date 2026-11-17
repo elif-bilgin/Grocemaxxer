@@ -261,3 +261,62 @@ for.
 | Database upgrades never crash | `fallbackToDestructiveMigration` in `CatalogDatabase.kt` |
 | 16 KB page-size support | AGP 8.10.1 packaging + `sqlite-bundled` 2.7.0 (verify once, above) |
 | Privacy policy | `PRIVACY.md` |
+
+## Publishing through the Play Developer API
+
+`androidApp/build.gradle.kts` carries Gradle Play Publisher, which uploads a
+bundle and assigns it to a track without touching the browser. It replaces the
+upload clicks only: the data safety form, content rating, trader status and
+the production-access application have no API and stay in the Console.
+
+### One-time setup
+
+1. **Google Cloud Console** — create a project, enable **Google Play Android
+   Developer API**.
+2. Create a **service account** and download its **JSON key**.
+3. **Play Console → Setup → API access** — link that Cloud project.
+4. **Play Console → Users and permissions** — invite the service account's
+   email address, grant **Release to testing tracks** (and **Release to
+   production** later, if you want to publish that way too).
+5. Put the JSON key at `play-service-account.json` in the repo root. It is
+   gitignored. In CI, set its *contents* as `ANDROID_PUBLISHER_CREDENTIALS`
+   instead; that variable holds the JSON itself, not a path.
+
+Permissions can take a few minutes to propagate; a fresh grant that returns
+403 is usually just early.
+
+### Publishing
+
+```
+./gradlew :androidApp:publishReleaseBundle                      # internal
+./gradlew :androidApp:publishReleaseBundle -Pplay.track=alpha   # a closed track
+```
+
+To see the task names the plugin actually registered:
+
+```
+./gradlew :androidApp:tasks --group publishing
+```
+
+`track` defaults to `internal` and is overridden per invocation with
+`-Pplay.track=`. Use the track's name as Play Console shows it; a closed track
+created in the Console is usually `alpha` unless it was renamed.
+
+### Why it is applied conditionally
+
+The plugin is only applied when credentials are present. Gradle Play Publisher
+is in maintenance mode and its latest release predates this project's AGP, so
+its compatibility is unverified. Applied unconditionally, an incompatibility
+would break every build. Applied this way, the worst case is that the publish
+tasks do not work and everything else carries on.
+
+So if `./gradlew :androidApp:tasks --group publishing` lists nothing, the
+credentials were not found — that is the switch, not a plugin failure.
+
+### What it cannot do
+
+- The first bundle for an app **must** be uploaded through the Console; the
+  API cannot register an app. Already done for this one.
+- No API exists for the production-access application, data safety, content
+  rating or trader status.
+- It cannot shorten the 12-tester, 14-day closed-test requirement.

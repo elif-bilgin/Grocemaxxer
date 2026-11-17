@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.composeCompiler)
+    // On the classpath, applied below only when credentials exist.
+    alias(libs.plugins.playPublisher) apply false
 }
 
 /**
@@ -33,6 +35,34 @@ val hasReleaseSigning = releaseStoreFile != null &&
     releaseStorePassword != null &&
     releaseKeyAlias != null &&
     releaseKeyPassword != null
+
+/**
+ * Publishing to Play through the Google Play Developer API.
+ *
+ * Applied only when credentials are present, which keeps ordinary builds
+ * completely unaffected by it. That matters here: Gradle Play Publisher is in
+ * maintenance mode and its latest release predates this project's AGP, so its
+ * compatibility is unverified. Applied unconditionally, an incompatibility
+ * would break every build; applied this way, the worst case is that the
+ * publish tasks do not work and `bundleRelease` carries on as before.
+ *
+ * Credentials come from either `play-service-account.json` at the repo root
+ * (gitignored), or the ANDROID_PUBLISHER_CREDENTIALS environment variable,
+ * which holds the JSON file's *contents* rather than a path.
+ */
+val playCredentialsFile = rootProject.file("play-service-account.json").takeIf { it.exists() }
+val hasPlayCredentials = playCredentialsFile != null ||
+    !System.getenv("ANDROID_PUBLISHER_CREDENTIALS").isNullOrBlank()
+
+if (hasPlayCredentials) {
+    apply(plugin = "com.github.triplet.play")
+    configure<com.github.triplet.gradle.play.PlayPublisherExtension> {
+        playCredentialsFile?.let { serviceAccountCredentials.set(it) }
+        // Override per invocation with -Pplay.track=<track name>.
+        track.set(providers.gradleProperty("play.track").orElse("internal"))
+        defaultToAppBundles.set(true)
+    }
+}
 
 android {
     namespace = "com.grocemaxxer.android"
