@@ -14,6 +14,5 @@ DerivedData/
 
 # Release signing material -- never commit these
 keystore.properties
-play-service-account.json
 *.jks
 *.keystore
