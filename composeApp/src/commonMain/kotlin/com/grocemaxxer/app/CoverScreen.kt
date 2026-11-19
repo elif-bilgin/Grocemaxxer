@@ -63,6 +63,7 @@ internal fun CoverScreen(
         GroceryListOrganizer.organize(items.filterNot { it.isChecked }, settings.store)
     }
     val checkedCount = items.count { it.isChecked }
+    val listBounce = rememberBounceScrollState()
 
     Column(modifier = modifier.fillMaxSize()) {
         // A cover display reports no window insets, so without an explicit
@@ -98,7 +99,7 @@ internal fun CoverScreen(
             items.isEmpty() -> CoverMessage("Open GroceMaxxer on the main screen to start a list.")
             remaining.isEmpty() -> CoverMessage("You got everything! 🎉")
             else -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().bounceScroll(listBounce),
                 contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {

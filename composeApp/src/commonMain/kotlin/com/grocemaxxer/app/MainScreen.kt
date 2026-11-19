@@ -161,6 +161,7 @@ internal fun MainScreen(
     }
 
     val listState = rememberLazyListState()
+    val listBounce = rememberBounceScrollState()
     val archiveHeaderIndex = activeGroups.size
 
     // Re-stack the archive when the user scrolls back up to the unchecked
@@ -326,7 +327,7 @@ internal fun MainScreen(
                     }
                     else -> LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().bounceScroll(listBounce),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
                     ) {
