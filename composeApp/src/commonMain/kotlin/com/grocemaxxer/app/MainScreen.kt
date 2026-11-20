@@ -76,6 +76,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -162,6 +163,7 @@ internal fun MainScreen(
 
     val listState = rememberLazyListState()
     val listBounce = rememberBounceScrollState()
+    val collapsingHeader = rememberCollapsingHeaderState()
     val archiveHeaderIndex = activeGroups.size
 
     // Re-stack the archive when the user scrolls back up to the unchecked
@@ -187,81 +189,86 @@ internal fun MainScreen(
                     .padding(innerPadding)
                     .padding(horizontal = 20.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // weight(1f) keeps the wordmark from consuming the whole
-                    // row and pushing the share/settings buttons off-screen.
-                    Column(modifier = Modifier.weight(1f)) {
-                        Image(
-                            painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
-                            contentDescription = "GroceMaxxer",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            contentScale = ContentScale.Fit,
-                            alignment = Alignment.CenterStart,
-                        )
-                        Text(
-                            text = fullDateLabel(dateIso),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    TextButton(onClick = onOpenImport) {
-                        Text("Import", fontWeight = FontWeight.Bold)
-                    }
-                    IconButton(
-                        onClick = {
-                            shareListText(
-                                ShareTextCodec.encode(items, shortDateLabel(dateIso)),
-                            )
-                        },
-                        enabled = items.isNotEmpty(),
+                // The wordmark and date are worth a glance on arrival and
+                // nothing once you are shopping, so they are what gets spent
+                // for room. Everything below this Column stays pinned.
+                Column(modifier = Modifier.collapsingHeader(collapsingHeader)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            Icons.Default.Share,
-                            contentDescription = "Share list",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    IconButton(onClick = { showAddSheet = true }) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add item",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    // Settings moved out of the header to make room for Add.
-                    // It is the rarely-used action of the two, so it goes to
-                    // the overflow rather than disappearing.
-                    Box {
-                        IconButton(onClick = { overflowExpanded = true }) {
+                        // weight(1f) keeps the wordmark from consuming the whole
+                        // row and pushing the share/settings buttons off-screen.
+                        Column(modifier = Modifier.weight(1f)) {
+                            Image(
+                                painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
+                                contentDescription = "GroceMaxxer",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                contentScale = ContentScale.Fit,
+                                alignment = Alignment.CenterStart,
+                            )
+                            Text(
+                                text = fullDateLabel(dateIso),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        TextButton(onClick = onOpenImport) {
+                            Text("Import", fontWeight = FontWeight.Bold)
+                        }
+                        IconButton(
+                            onClick = {
+                                shareListText(
+                                    ShareTextCodec.encode(items, shortDateLabel(dateIso)),
+                                )
+                            },
+                            enabled = items.isNotEmpty(),
+                        ) {
                             Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = "More options",
+                                Icons.Default.Share,
+                                contentDescription = "Share list",
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        DropdownMenu(
-                            expanded = overflowExpanded,
-                            onDismissRequest = { overflowExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Settings") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Settings, contentDescription = null)
-                                },
-                                onClick = {
-                                    overflowExpanded = false
-                                    showSettingsSheet = true
-                                },
+                        IconButton(onClick = { showAddSheet = true }) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Add item",
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
+                        // Settings moved out of the header to make room for Add.
+                        // It is the rarely-used action of the two, so it goes to
+                        // the overflow rather than disappearing.
+                        Box {
+                            IconButton(onClick = { overflowExpanded = true }) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "More options",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = overflowExpanded,
+                                onDismissRequest = { overflowExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Settings") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Settings, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        overflowExpanded = false
+                                        showSettingsSheet = true
+                                    },
+                                )
+                            }
+                        }
                     }
+                    Spacer(Modifier.height(10.dp))
                 }
-                Spacer(Modifier.height(10.dp))
 
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -327,7 +334,14 @@ internal fun MainScreen(
                     }
                     else -> LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize().bounceScroll(listBounce),
+                        // .nestedScroll after .bounceScroll puts the header
+                        // nearer the list, so it gets the leftover of an
+                        // upward scroll first and is fully back before the
+                        // bounce starts taking any.
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .bounceScroll(listBounce)
+                            .nestedScroll(collapsingHeader.connection),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
                     ) {

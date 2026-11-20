@@ -19,11 +19,11 @@ import androidx.compose.ui.unit.Velocity
 import kotlin.math.abs
 import kotlin.math.sign
 
-/** How far the list can be pulled past its end, in pixels. */
-private const val MAX_PULL_PX = 180f
+/** The pull can approach, but never reach, this many pixels. */
+private const val PULL_LIMIT_PX = 140f
 
-/** Fraction of an overscrolling drag that turns into pull at rest. */
-private const val PULL_RESISTANCE = 0.4f
+/** Ceiling on stored drag, which bounds how far back a finger has to travel. */
+private const val MAX_DRAG_PX = 420f
 
 /**
  * A rubber-band bounce for the ends of a scrolling list.
@@ -31,33 +31,39 @@ private const val PULL_RESISTANCE = 0.4f
  * Compose Multiplatform 1.7 has no way to hand a custom [androidx.compose.foundation.OverscrollEffect]
  * to a `LazyColumn` -- neither `LazyColumn` nor `Modifier.scrollable` takes one at
  * this version, and `Modifier.overscroll` only *draws* an effect without ever
- * feeding it scroll deltas. So the bounce is built on nested scroll instead, which
- * is stable API here.
+ * feeding it scroll deltas. So the bounce is built on nested scroll instead,
+ * which is stable API here.
  *
- * Consuming the leftover delta in [NestedScrollConnection.onPostScroll] is what
- * suppresses the platform's own overscroll: the scroll machinery wraps the whole
- * pre-scroll/scroll/post-scroll chain in `OverscrollEffect.applyToScroll`, so an
- * effect only sees what parent connections did not take. Taking all of it starves
- * Android's stretch, leaving just this bounce rather than the two fighting.
+ * Drag overscroll is this bounce; fling overscroll is deliberately left to the
+ * platform. See [NestedScrollConnection.onPostScroll] below for why.
  */
 class BounceScrollState {
     /** Pixels the list is currently displaced by; positive is downward. */
     var pull by mutableFloatStateOf(0f)
         private set
 
+    /** Raw finger travel past the end, before the rubber band compresses it. */
+    private var drag = 0f
+
     /**
-     * Pull resists progressively, so the list slows to a stop near [MAX_PULL_PX]
-     * instead of tracking the finger one-to-one off the end of the screen.
+     * Compresses raw drag onto an asymptote at [PULL_LIMIT_PX]. Tracking raw
+     * travel rather than the compressed value is what makes winding and
+     * unwinding symmetric: the list follows the finger back out at exactly the
+     * rate it followed it in, instead of leaving dead travel to pay off first.
      */
-    private fun damped(delta: Float): Float {
-        val progress = (abs(pull) / MAX_PULL_PX).coerceIn(0f, 1f)
-        return delta * (1f - progress) * PULL_RESISTANCE
+    private fun rubberBand(raw: Float): Float =
+        sign(raw) * (1f - 1f / (abs(raw) / PULL_LIMIT_PX + 1f)) * PULL_LIMIT_PX
+
+    private fun applyDrag(delta: Float) {
+        drag = (drag + delta).coerceIn(-MAX_DRAG_PX, MAX_DRAG_PX)
+        pull = rubberBand(drag)
     }
 
     private suspend fun settle() {
+        drag = 0f
         if (pull == 0f) return
-        // Cancelled if the user touches down again mid-spring, which leaves `pull`
-        // wherever the animation got to -- exactly where the next drag should resume.
+        // Cancelled if the user touches down again mid-spring, which leaves
+        // `pull` wherever the animation got to -- where the next drag resumes.
         Animatable(pull).animateTo(
             targetValue = 0f,
             animationSpec = spring(
@@ -69,43 +75,54 @@ class BounceScrollState {
     }
 
     val connection = object : NestedScrollConnection {
-        /** Scrolling back toward the content pays the pull down before the list moves. */
+        /** Scrolling back toward the content unwinds the pull before the list moves. */
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            if (pull == 0f || available.y == 0f || sign(available.y) == sign(pull)) {
+            if (drag == 0f || available.y == 0f || sign(available.y) == sign(drag)) {
                 return Offset.Zero
             }
-            val next = pull + available.y
-            return if (sign(next) != sign(pull)) {
+            val next = drag + available.y
+            return if (sign(next) != sign(drag)) {
                 // The pull is used up; hand the rest of the gesture to the list.
-                val spent = -pull
+                val spent = -drag
+                drag = 0f
                 pull = 0f
                 Offset(0f, spent)
             } else {
-                pull = next
+                applyDrag(available.y)
                 Offset(0f, available.y)
             }
         }
 
-        /** Whatever the list could not scroll is at its end, so it becomes pull. */
+        /**
+         * Whatever the list could not scroll is at its end, so it becomes pull --
+         * but only under a finger.
+         *
+         * Leftover from a *fling* is deliberately left unconsumed. Compose cancels
+         * a fling only when the scroll declines to consume what it offered, so
+         * taking it here keeps the decay animation running against the end of the
+         * list for its full duration, which on a fast fling is a second or more of
+         * the list sitting pulled open before the spring is allowed to start.
+         * That was the delayed, out-of-nowhere bounce.
+         *
+         * Declining it hands fling overscroll to the platform effect instead --
+         * on Android, the stock stretch. Suppressing that to bounce on flings too
+         * would need `LocalOverscrollConfiguration`, which is not reachable from
+         * common code, so the two gestures differ by one effect and neither
+         * glitches. Consuming the finger's leftover above still starves the
+         * stretch during a drag, so the two never run at once.
+         */
         override fun onPostScroll(
             consumed: Offset,
             available: Offset,
             source: NestedScrollSource,
         ): Offset {
-            if (available.y == 0f) return Offset.Zero
-            pull = (pull + damped(available.y)).coerceIn(-MAX_PULL_PX, MAX_PULL_PX)
+            if (available.y == 0f || source != NestedScrollSource.UserInput) return Offset.Zero
+            applyDrag(available.y)
             return Offset(0f, available.y)
         }
 
         /** Released while overscrolled: spring back instead of flinging. */
         override suspend fun onPreFling(available: Velocity): Velocity {
-            if (pull == 0f) return Velocity.Zero
-            settle()
-            return available
-        }
-
-        /** A fling that ran into the end builds pull via onPostScroll; release it. */
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
             if (pull == 0f) return Velocity.Zero
             settle()
             return available
@@ -122,7 +139,7 @@ fun rememberBounceScrollState(): BounceScrollState = remember { BounceScrollStat
  *
  * [clipToBounds] has to come before the layer: `graphicsLayer` does not clip its
  * own translated content, so without it a pulled list would draw outside its
- * bounds and over whatever sits above or below -- the date bar, in this app.
+ * bounds and over whatever sits above or below -- the pinned bar, in this app.
  */
 fun Modifier.bounceScroll(state: BounceScrollState): Modifier =
     this.nestedScroll(state.connection)
