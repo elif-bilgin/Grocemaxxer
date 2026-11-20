@@ -46,9 +46,15 @@ android {
         applicationId = "com.groovy.grocemaxxer"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        // Bump versionCode on every upload to Play; Play rejects a reused one.
-        versionCode = 3
-        versionName = "1.1.1"
+        // Bump versionCode on EVERY upload. Play rejects a reused one, and the
+        // failure is quiet in the worst way: the Console lets you build a
+        // release around the bundle already holding that code, so the release
+        // ships last time's binary under this time's release notes. If testers
+        // report that a release changed nothing, check this number first.
+        //
+        // Used so far: 1 (1.0.0), 2 (1.1.0), 3 (1.1.1, released as "1.2.0").
+        versionCode = 4
+        versionName = "1.4.0"
     }
 
     if (hasReleaseSigning) {
