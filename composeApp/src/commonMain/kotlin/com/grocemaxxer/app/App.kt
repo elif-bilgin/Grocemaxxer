@@ -227,6 +227,7 @@ fun App() {
                     when (current) {
                         AppScreen.Loading -> Box(modifier = Modifier.fillMaxSize())
                         AppScreen.Welcome -> WelcomeContent(
+                            playEntrance = remember { LaunchEntrance.claim() },
                             hasStoredLists = !storedDates.isNullOrEmpty(),
                             onUsePrevious = {
                                 val latest = storedDates?.firstOrNull()
@@ -285,6 +286,7 @@ fun App() {
                             ),
                     ) {
                         WelcomeContent(
+                            playEntrance = remember { LaunchEntrance.claim() },
                             hasStoredLists = true,
                             onUsePrevious = { resumeDate?.let(::adoptOrAsk) },
                             onStartNew = ::startFresh,
@@ -368,6 +370,7 @@ private fun WelcomeContent(
     onStartNew: () -> Unit,
     onPickFromDate: () -> Unit,
     modifier: Modifier = Modifier,
+    playEntrance: Boolean = false,
     subtitle: String = "Your grocery run, optimized.",
     usePreviousLabel: String = "USE PREVIOUS LIST",
     startNewLabel: String = "START NEW LIST",
@@ -379,14 +382,18 @@ private fun WelcomeContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Spacer(Modifier.height(28.dp))
-        BasketLogo(size = 160.dp)
+        BasketLogo(
+            size = 160.dp,
+            modifier = Modifier.launchBounce(play = playEntrance),
+        )
         Spacer(Modifier.height(28.dp))
         Image(
             painter = painterResource(Res.drawable.grocemaxxer_title_no_background),
             contentDescription = "GroceMaxxer",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .height(120.dp)
+                .launchBounce(play = playEntrance, delayMillis = 140, strength = 0.8f),
             contentScale = ContentScale.Fit,
         )
         Spacer(Modifier.height(8.dp))
