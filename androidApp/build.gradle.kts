@@ -52,9 +52,9 @@ android {
         // ships last time's binary under this time's release notes. If testers
         // report that a release changed nothing, check this number first.
         //
-        // Used so far: 1 (1.0.0), 2 (1.1.0), 3 (1.1.1, released as "1.2.0").
-        versionCode = 4
-        versionName = "1.4.0"
+        // Used so far: 1 (1.0.0), 2 (1.1.0), 3 (1.1.1, released as "1.2.0"), 4.
+        versionCode = 5
+        versionName = "1.5.0"
     }
 
     if (hasReleaseSigning) {
