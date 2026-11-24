@@ -1,11 +1,13 @@
 package com.grocemaxxer.app
 
+import androidx.compose.material3.LocalTonalElevationEnabled
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import com.grocemaxxer.shared.StoreSection
 
@@ -46,6 +48,14 @@ fun GrocemaxxerTheme(
             onSurface = Color(0xFFE9E4EA),
             surfaceVariant = Color(0xFF2A272E),
             onSurfaceVariant = Color(0xFFB9B2BC),
+            // Menus and sheets read these, not `surface`. Left unset they fall
+            // back to Material's own baseline, which is a lavender grey that
+            // belongs to no palette here.
+            surfaceContainerLowest = Color(0xFF1B191E),
+            surfaceContainerLow = Color(0xFF211F24),
+            surfaceContainer = Color(0xFF26232B),
+            surfaceContainerHigh = Color(0xFF2A272E),
+            surfaceContainerHighest = Color(0xFF332F38),
         )
     } else {
         lightColorScheme(
@@ -59,9 +69,22 @@ fun GrocemaxxerTheme(
             onSurface = Color(0xFF3A342F),
             surfaceVariant = palette.container.copy(alpha = 0.55f),
             onSurfaceVariant = Color(0xFF7A736E),
+            // Every panel that floats above the page -- the overflow menu, the
+            // add and settings sheets -- is solid white, like the cards.
+            surfaceContainerLowest = Color.White,
+            surfaceContainerLow = Color.White,
+            surfaceContainer = Color.White,
+            surfaceContainerHigh = Color.White,
+            surfaceContainerHighest = Color.White,
         )
     }
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    // Material tints a surface by its elevation, but only when the surface
+    // colour equals `surface` -- which white-on-white containers now do. That
+    // tint is what would keep the menu from being the flat white asked for, and
+    // this app draws its depth with shadow and shape rather than hue.
+    CompositionLocalProvider(LocalTonalElevationEnabled provides false) {
+        MaterialTheme(colorScheme = colorScheme, content = content)
+    }
 }
 
 /**
